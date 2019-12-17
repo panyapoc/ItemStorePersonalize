@@ -429,7 +429,7 @@ Resources:
       Environment:
         Variables:
           ddb_tablename: !Sub '${ProjectName}-Items'
-      Handler: geReccommendation.handler
+      Handler: getReccommendation.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -604,6 +604,33 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
       ResourceId: !Ref RecommendationsApiResource
+      RestApiId: !Ref AppApi
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+  RecomendationsByUserApiRequestGET:
+    DependsOn:
+      - FunctionGetRecommendations
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref 'AWS::Region'
+            - ':lambda:path/2015-03-31/functions/'
+            - !GetAtt
+              - FunctionGetRecommendations
+              - Arn
+            - /invocations
+        IntegrationResponses:
+          - StatusCode: 200
+      ResourceId: !Ref RecommendationsByUserApiResource
       RestApiId: !Ref AppApi
       MethodResponses:
         - StatusCode: 200
@@ -879,11 +906,25 @@ Resources:
         - AppApi
         - RootResourceId
       PathPart: recommendations
-  RecommendationsByItemApiResource:
+  RecommendationsByUserApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
       RestApiId: !Ref AppApi
       ParentId: !Ref RecommendationsApiResource
+      PathPart: '{UserId}'
+  RecommendationsByItemApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref AppApi
+      ParentId: !GetAtt
+        - AppApi
+        - RootResourceId
+      PathPart: recommendationsitem
+  RecommendationsByItemItemIdApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref AppApi
+      ParentId: !Ref RecommendationsByItemApiResource
       PathPart: '{itemId}'
   ItemsApiResource:
     Type: 'AWS::ApiGateway::Resource'

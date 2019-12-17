@@ -8,7 +8,7 @@ dynamodb = boto3.resource('dynamodb')
 ddb_tablename = os.environ["ddb_tablename"]
 table = dynamodb.Table(ddb_tablename)
 
-def lambda_handler(event, context):
+def handler(event, context):
     Campaign_ARN = "arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp"
 
     try :
@@ -21,15 +21,25 @@ def lambda_handler(event, context):
     )
 
     itemlist = [];
+    errcount = 0
     for item in response['itemList']:
         itemobj = table.get_item(
             Key={
                 'asin': item['itemId']
             }
         )
-        itemlist.append(itemobj['Item'])
+        try :
+            itemlist.append(itemobj['Item'])
+        except :
+            errcount = errcount+1
+    print("Can't find ",errcount)
+
 
     return {
         'statusCode': 200,
+        'headers': {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": True
+        },
         'body': json.dumps(itemlist)
     }
