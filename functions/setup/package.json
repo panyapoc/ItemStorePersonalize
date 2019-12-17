@@ -1,0 +1,16 @@
+{
+  "name": "setup",
+  "version": "1.0.0",
+  "description": "setup ddb",
+  "main": "uploadItems.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prestart": "zip -r function.zip .",
+    "start": "aws lambda update-function-code --function-name uploadItems --zip-file fileb://function.zip"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "uuid": "^3.3.3"
+  }
+}
