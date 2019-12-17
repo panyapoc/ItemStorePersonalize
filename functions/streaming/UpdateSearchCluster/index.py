@@ -1,6 +1,7 @@
 import boto3
 import os
 import requests
+from dynamodb_json import json_util as json
 from requests_aws4auth import AWS4Auth
 
 region = os.environ["REGION"]
@@ -27,7 +28,8 @@ def handler(event, context):
         if record['eventName'] == 'REMOVE':
             r = requests.delete(url + id, auth=awsauth)
         else:
-            document = record['dynamodb']['NewImage']
+            document = json.loads(record['dynamodb']['NewImage'])
+            print(document)
             r = requests.put(url + id, auth=awsauth, json=document, headers=headers)
         count += 1
 
