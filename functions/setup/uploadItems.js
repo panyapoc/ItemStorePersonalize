@@ -14,7 +14,7 @@ exports.handler = function(event, context, callback) {
 
   if (event.RequestType === "Create") {
     getItemsData().then(function(data) {
-      var itemsString = data.Body.toString("utf-8");
+      var itemsString = data.Body.toString("utf-8").replace(/\""/g, "null");
       var itemsList = JSON.parse(itemsString);
       uploadItemsData(itemsList);
     }).catch(function(err) {
@@ -34,7 +34,7 @@ function uploadItemsData(item_items) {
   var items_array = [];
   for (var i in item_items) {
     var item = item_items[i];
-    console.log(item.id)
+    console.log(item.asin)
     var item = {
       PutRequest: {
        Item: item
