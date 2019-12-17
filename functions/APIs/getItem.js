@@ -16,7 +16,7 @@ exports.handler = (event, context, callback) => {
     // 'Key' defines the partition key of the item to be retrieved
     // - 'id': a unique identifier for the item (uuid)
     Key: {
-      id: event.pathParameters.asin
+      asin: event.pathParameters.id
     }
   };
   dynamoDb.get(params, (error, data) => {

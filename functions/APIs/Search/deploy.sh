@@ -1,6 +1,6 @@
 #!/bin/bash
 cd venv/lib/python3.7/site-packages
-zip -r9 ${OLDPWD}/function_setup.zip .
+zip -r9 ${OLDPWD}/Search.zip .
 cd $OLDPWD
-zip -g function_setup.zip index.py
-aws lambda update-function-code --function-name search --zip-file fileb://function_setup.zip
+zip -g Search.zip index.py
+aws lambda update-function-code --function-name search --zip-file fileb://Search.zip

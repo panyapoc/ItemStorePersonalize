@@ -1,0 +1,384 @@
+AWSTemplateFormatVersion: 2010-09-09
+Conditions:
+  IADRegion:
+    Fn::Equals:
+    - Ref: AWS::Region
+    - us-east-1
+Mappings:
+  Constants:
+    AppKeys:
+      SeedRepository: https://s3.amazonaws.com/aws-itemstore-demo/itemstore-webapp.zip
+    S3Keys:
+      AddToCartCode: functions/AddToCart.zip
+      CheckoutCode: functions/Checkout.zip
+      CreateESRoleCode: functions/CreateESRole.zip
+      DeleteBucketsCode: functions/DeleteBuckets.zip
+      GetBestSellersCode: functions/GetBestSellers.zip
+      GetCartItemCode: functions/GetCartItem.zip
+      GetItemCode: functions/GetItem.zip
+      GetRecommendationsByItemCode: functions/GetRecommendationsByItem.zip
+      GetRecommendationsCode: functions/GetRecommendations.zip
+      ListItemsCode: functions/ListItems.zip
+      ListItemsInCartCode: functions/ListItemsInCart.zip
+      ListOrdersCode: functions/ListOrders.zip
+      NeptuneIAMCode: functions/NeptuneIAM.zip
+      NeptuneLoaderCode: functions/NeptuneLoader.zip
+      PythonLambdaLayer: functions/PythonLambdaLayer.zip
+      RemoveFromCartCode: functions/RemoveFromCart.zip
+      SearchCode: functions/Search.zip
+      SeederFunctionCode: aws-serverless-codecommit-seeder.zip
+      UpdateBestSellersCode: functions/UpdateBestSellers.zip
+      UpdateCartCode: functions/UpdateCart.zip
+      UpdateConfigCode: functions/UpdateConfig.zip
+      UpdateSearchCode: functions/UpdateSearchCluster.zip
+      UploadItemsCode: functions/UploadItems.zip
+      itemsData: data/items.json
+      itemstoreNeptuneS3DataPath: /data/
+  S3Buckets:
+    eu-central-1:
+      Bucket: aws-itemstore-demo-eu-central-1
+      NeptuneDataBucket: itemstore-neptune-eu-central-1
+      SeederFunctionBucket: fsd-aws-wildrydes-eu-central-1
+    eu-west-1:
+      Bucket: aws-itemstore-demo-eu-west-1
+      NeptuneDataBucket: itemstore-neptune-eu-west-1
+      SeederFunctionBucket: fsd-aws-wildrydes-eu-west-1
+    us-east-1:
+      Bucket: aws-itemstore-demo
+      NeptuneDataBucket: itemstore-neptune
+      SeederFunctionBucket: fsd-aws-wildrydes-us-east-1
+    us-west-2:
+      Bucket: aws-itemstore-demo-us-west-2
+      NeptuneDataBucket: itemstore-neptune-us-west-2
+      SeederFunctionBucket: fsd-aws-wildrydes-us-west-2
+Parameters:
+  ProjectName:
+    AllowedPattern: ^[a-z]{1,12}
+    ConstraintDescription: The ProjectName can be up to 12 characters, lowercase letters
+      (a-z) only.
+    Default: itemstore
+    Description: Used as a prefix for project resources.  Can be up to 12 characters,
+      lowercase letters (a-z) only.
+    Type: String
+Resources:
+  DataTableStream:
+    DependsOn: TItems
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn:
+        Fn::GetAtt:
+        - TItems
+        - StreamArn
+      FunctionName:
+        Fn::GetAtt:
+        - UpdateSearchCluster
+        - Arn
+      StartingPosition: TRIM_HORIZON
+    Type: AWS::Lambda::EventSourceMapping
+  DynamoDbRole:
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 07b29683-0ea5-44bf-a439-fcb89713fd09
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:UpdateTable
+            - dynamodb:UpdateItem
+            - dynamodb:BatchWriteItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            Effect: Allow
+            Resource:
+            - Fn::GetAtt:
+              - TItems
+              - Arn
+            - Fn::GetAtt:
+              - TOrders
+              - Arn
+            - Fn::GetAtt:
+              - TCart
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TItems
+                  - Arn
+                - /*
+          Version: 2012-10-17
+        PolicyName: PutRidePolicy
+      RoleName:
+        Fn::Sub: ${ProjectName}-DynamoDbLambda
+    Type: AWS::IAM::Role
+  ESSearchRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Path: /
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - es:ESHttpPost
+            - es:ESHttpGet
+            Effect: Allow
+            Resource:
+              Fn::Join:
+              - ''
+              - - 'arn:aws:es:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - ':'
+                - domain/
+                - Ref: ElasticsearchDomain
+                - /*
+          - Action:
+            - s3:ListBucket
+            - s3:GetObject
+            Effect: Allow
+            Resource: '*'
+          - Action:
+            - dynamodb:DescribeStream
+            - dynamodb:GetRecords
+            - dynamodb:GetShardIterator
+            - dynamodb:ListStreams
+            Effect: Allow
+            Resource:
+            - Fn::GetAtt:
+              - TItems
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TItems
+                  - Arn
+                - /stream/*
+          Version: 2012-10-17
+        PolicyName:
+          Fn::Sub: ${ProjectName}-lambda-policy
+      RoleName:
+        Fn::Sub: ${ProjectName}-ESSearchRole
+    Type: AWS::IAM::Role
+  ElasticsearchDomain:
+    Properties:
+      AccessPolicies:
+        Statement:
+        - Action:
+          - es:*
+          Effect: Allow
+          Principal:
+            AWS: '*'
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:aws:es:'
+              - Ref: AWS::Region
+              - ':'
+              - Ref: AWS::AccountId
+              - ':'
+              - domain/
+              - Fn::Sub: ${ProjectName}-domain
+              - /*
+        Version: 2012-10-17
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: true
+      DomainName:
+        Fn::Sub: ${ProjectName}-domain
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 10
+        VolumeType: gp2
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: 'false'
+        InstanceCount: '1'
+        InstanceType: t2.small.elasticsearch
+        ZoneAwarenessEnabled: 'false'
+      ElasticsearchVersion: 7.1
+      VPCOptions:
+        SubnetIds:
+        - Ref: itemstoreSubnet1
+    Type: AWS::Elasticsearch::Domain
+  TCart:
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: e1a45038-ec76-464d-91b5-6b31bc325fa7
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: customerId
+        AttributeType: S
+      - AttributeName: itemId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: customerId
+        KeyType: HASH
+      - AttributeName: itemId
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableName:
+        Fn::Sub: ${ProjectName}-Cart
+    Type: AWS::DynamoDB::Table
+  TItems:
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: asin
+        AttributeType: S
+      KeySchema:
+      - AttributeName: asin
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName:
+        Fn::Sub: ${ProjectName}-Items
+    Type: AWS::DynamoDB::Table
+  TOrders:
+    Metadata:
+      AWS::CloudFormation::Designer:
+        id: 57fb3162-6a2d-4651-a9c8-7404e82181e8
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: customerId
+        AttributeType: S
+      - AttributeName: orderId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: customerId
+        KeyType: HASH
+      - AttributeName: orderId
+        KeyType: RANGE
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      TableName:
+        Fn::Sub: ${ProjectName}-Orders
+    Type: AWS::DynamoDB::Table
+  UpdateSearchCluster:
+    DependsOn:
+    - ESSearchRole
+    - ElasticsearchDomain
+    - TItems
+    Properties:
+      CodeUri: s3://search-unicorngym/89df69eb6e7080cc70374bbe4461554e
+      Description: Update Elasticsearch cluster as items are added
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          REGION:
+            Ref: AWS::Region
+      FunctionName:
+        Fn::Sub: ${ProjectName}-UpdateSearchCluster
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - ESSearchRole
+        - Arn
+      Runtime: python3.7
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+        - Fn::GetAtt:
+          - itemstoreVPC
+          - DefaultSecurityGroup
+        SubnetIds:
+        - Ref: itemstoreSubnet1
+    Type: AWS::Serverless::Function
+  itemstoreSubnet1:
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Fn::Select:
+        - 0
+        - Fn::Cidr:
+          - Fn::GetAtt:
+            - itemstoreVPC
+            - CidrBlock
+          - 3
+          - 8
+      VpcId:
+        Ref: itemstoreVPC
+    Type: AWS::EC2::Subnet
+  itemstoreSubnet2:
+    Properties:
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs:
+            Ref: AWS::Region
+      CidrBlock:
+        Fn::Select:
+        - 1
+        - Fn::Cidr:
+          - Fn::GetAtt:
+            - itemstoreVPC
+            - CidrBlock
+          - 3
+          - 8
+      VpcId:
+        Ref: itemstoreVPC
+    Type: AWS::EC2::Subnet
+  itemstoreVPC:
+    Properties:
+      CidrBlock: 172.31.0.0/16
+    Type: AWS::EC2::VPC
+  itemstoreVPCRouteTable:
+    Properties:
+      VpcId:
+        Ref: itemstoreVPC
+    Type: AWS::EC2::RouteTable
+  itemstoreVPCRouteTableAssociation:
+    Properties:
+      RouteTableId:
+        Ref: itemstoreVPCRouteTable
+      SubnetId:
+        Ref: itemstoreSubnet1
+    Type: AWS::EC2::SubnetRouteTableAssociation
+  itemstoreVPCRouteTableAssociationTwo:
+    Properties:
+      RouteTableId:
+        Ref: itemstoreVPCRouteTable
+      SubnetId:
+        Ref: itemstoreSubnet2
+    Type: AWS::EC2::SubnetRouteTableAssociation
+Transform: AWS::Serverless-2016-10-31
