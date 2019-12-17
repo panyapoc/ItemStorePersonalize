@@ -56,7 +56,7 @@ exports.handler = (event, context, callback) => {
   // List all items in itemstore
   else {
     const params = {
-      TableName: process.env.TABLE_NAME // [ProjectName]-Items
+      TableName: process.env.TABLE_NAME, // [ProjectName]-Items
       Limit : 20
     };
 

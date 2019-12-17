@@ -179,12 +179,6 @@ Resources:
                   - !GetAtt
                     - TItems
                     - Arn
-                  - !GetAtt
-                    - TOrders
-                    - Arn
-                  - !GetAtt
-                    - TCart
-                    - Arn
                   - !Join
                     - ''
                     - - !GetAtt
@@ -212,6 +206,22 @@ Resources:
         StreamViewType: NEW_AND_OLD_IMAGES
 
 # ---------- ELASTICSEARCH ROLES DEFINITIONS ---------
+  LambdaAdminRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${ProjectName}-LambdaAdminRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
   ESSearchRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -408,15 +418,18 @@ Resources:
           ## TODO: change this
       CodeUri: ./functions/setup/
   FunctionGetRecommendations:
-    Type: 'AWS::Lambda::Function'
+    Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-GetRecommendations'
       CodeUri: ./functions/APIs/getRecommendation/
       Description: Get the product recommendations
+      Role: !GetAtt
+        - LambdaAdminRole
+        - Arn
       Environment:
         Variables:
           ddb_tablename: !Sub '${ProjectName}-Items'
-      Handler: index.handler
+      Handler: geReccommendation.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -686,7 +699,7 @@ Resources:
   #         StatusCode: '200'
   ItemsApiRequestGET:
     DependsOn:
-      - FunctionListOrdersPermissions
+      - FunctionListItems
     Type: 'AWS::ApiGateway::Method'
     Properties:
       AuthorizationType: NONE
