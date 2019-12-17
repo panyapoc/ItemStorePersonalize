@@ -18,7 +18,7 @@ sam package \
 
 sam deploy \
     --template-file $PACKAGEFILE \
-    --stack-name testunicorn \
+    --stack-name testiii \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile $AWSPROFILE \
-    --parameter-overrides ProjectName=testunicorn
+    --parameter-overrides ProjectName=testiii

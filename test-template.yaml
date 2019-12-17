@@ -64,6 +64,17 @@ Resources:
     Properties:
       CidrBlock: '172.31.0.0/16'
 
+  itemstoreInternetGateway:
+    Type: AWS::EC2::InternetGateway
+
+  itemstoreAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: itemstoreInternetGateway
+      VpcId:
+        Ref: itemstoreVPC
+
   itemstoreSubnet1:
     Type: "AWS::EC2::Subnet"
     Properties:
@@ -104,6 +115,21 @@ Resources:
     Properties:
       VpcId: !Ref itemstoreVPC
 
+  itemstoreVPCPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref itemstoreVPC
+
+  RouteToInternet:
+    Type: AWS::EC2::Route
+    DependsOn: itemstoreInternetGateway
+    Properties:
+      RouteTableId:
+        Ref: itemstoreVPCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: itemstoreInternetGateway
+
   itemstoreVPCRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -111,9 +137,10 @@ Resources:
       SubnetId: !Ref itemstoreSubnet1
 
   itemstoreVPCRouteTableAssociationTwo:
+    DependsOn: RouteToInternet
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
-      RouteTableId: !Ref itemstoreVPCRouteTable
+      RouteTableId: !Ref itemstoreVPCPublicRouteTable
       SubnetId: !Ref itemstoreSubnet2
 
 # ---------- ROLES FOR DYNAMODB ---------
@@ -342,7 +369,7 @@ Resources:
       Role: !GetAtt
         - ESSearchRole
         - Arn
-      Runtime: python3.7
+      Runtime: python3.8
       Timeout: 60
       VpcConfig:
         SecurityGroupIds:
@@ -357,7 +384,7 @@ Resources:
             - DomainEndpoint
           REGION: !Ref 'AWS::Region'
 
- # ----------  STREAMING TRIGGERS ---------
+# ----------  STREAMING TRIGGERS ---------
   DataTableStream:
     DependsOn: TItems
     Type: 'AWS::Lambda::EventSourceMapping'
@@ -372,35 +399,9 @@ Resources:
         - Arn
       StartingPosition: TRIM_HORIZON
 
-      FunctionListOrders:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-ListOrders'
-      Description: Get list of items ordered by customerId
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Orders'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - ListOrdersCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: f873825f-3037-47b0-90b4-fca6924fb4e9
+# ---------- TODO:API Function ---------
   FunctionGetItem:
-    Type: 'AWS::Lambda::Function'
+    Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-GetItem'
       Description: Get item by id
@@ -414,20 +415,9 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Sub '${ProjectName}-Items'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - GetItemCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 1ae22cac-5803-4077-a6fe-1a3ca1aedfc2
+      CodeUri: ./functions/APIs/GetItem/
   FunctionListItems:
-    Type: 'AWS::Lambda::Function'
+    Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-ListItems'
       Description: Get list of items by category
@@ -441,184 +431,10 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Sub '${ProjectName}-Items'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - ListItemsCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 8e306d11-6d48-49e0-8f69-760139c83447
-  FunctionUpdateCart:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-UpdateCart'
-      Description: Update Customer's cart
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Cart'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - UpdateCartCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 92605ac3-2103-491b-8593-c1ed98181425
-  FunctionGetCartItem:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-GetCartItem'
-      Description: Get item in cart by customer and item id
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Cart'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - GetCartItemCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: e64608f0-5134-4c91-8f3c-4d03408c8236
-  FunctionListItemsInCart:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-ListOrdersInCart'
-      Description: Get list of items in cart
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Cart'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - ListItemsInCartCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: e64608f0-5134-4c91-8f3c-4d03408c8236
-  FunctionAddToCart:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-AddToCart'
-      Description: Add a item to cart
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Cart'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - AddToCartCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: e64608f0-5134-4c91-8f3c-4d03408c8236
-  FunctionRemoveFromCart:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-RemoveFromCart'
-      Description: Remove a item from cart
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Cart'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - RemoveFromCartCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: e64608f0-5134-4c91-8f3c-4d03408c8236
-  FunctionCheckout:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-Checkout'
-      Description: Get list of items ordered by customerId
-      Handler: index.handler
-      MemorySize: 256
-      Runtime: nodejs8.10
-      Role: !GetAtt
-        - DynamoDbRole
-        - Arn
-      Timeout: 120
-      Environment:
-        Variables:
-          ORDERS_TABLE: !Sub '${ProjectName}-Orders'
-          CART_TABLE: !Sub '${ProjectName}-Cart'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - CheckoutCode
-    Metadata:
-      'AWS::CloudFormation::Designer':
-        id: 9c3f4191-a370-4344-a5b1-626228919c45
+      CodeUri: ./functions/APIs/ListItems/
   FunctionUploadItems:
     DependsOn: DataTableStream
-    Type: 'AWS::Lambda::Function'
+    Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-UploadItems'
       Description: Upload sample data for items
@@ -631,96 +447,47 @@ Resources:
       Environment:
         Variables:
           TABLE_NAME: !Sub '${ProjectName}-Items'
-          S3_BUCKET: !FindInMap
-                    - S3Buckets
-                    - !Ref 'AWS::Region'
-                    - Bucket
-          FILE_NAME: !FindInMap
-                    - Constants
-                    - S3Keys
-                    - itemsData
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - UploadItemsCode
+      CodeUri: ./functions/setup/
     Metadata:
       'AWS::CloudFormation::Designer':
         id: 9c3f4191-a370-4344-a5b1-626228919c47
 
-# ---------- LAMBDA FUNCTIONS for NEPTUNE ---------
+# TODO: FunctionGetRecommendationsByItem
+  # FunctionGetRecommendationsByItem:
+  #   Type: 'AWS::Lambda::Function'
+  #   Properties:
+  #     FunctionName: !Sub '${ProjectName}-GetRecommendationsByItem'
+  #     Code:
+  #       S3Bucket: !FindInMap
+  #         - S3Buckets
+  #         - !Ref 'AWS::Region'
+  #         - Bucket
+  #       S3Key: !FindInMap
+  #         - Constants
+  #         - S3Keys
+  #         - GetRecommendationsByItemCode
+  #     Description: Get friends who purchased this item
+  #     Environment:
+  #       Variables:
+  #         neptunedb: !GetAtt itemstoreNeptuneCluster.Endpoint
+  #     Handler: index.handler
+  #     MemorySize: 256
+  #     Role:
+  #       'Fn::GetAtt':
+  #         - RecommendationsLambdaRole
+  #         - Arn
+  #     Runtime: python3.6
+  #     Timeout: 30
+  #     VpcConfig:
+  #       SecurityGroupIds:
+  #         - Ref: itemstoreNeptuneSecurityGroup
+  #       SubnetIds:
+  #         - Ref: itemstoreSubnet1
+  #         - Ref: itemstoreSubnet2
 
-  FunctionGetRecommendations:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-GetRecommendations'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - GetRecommendationsCode
-      Description: Get the top 5 product recommendations from Neptune
-      Environment:
-        Variables:
-          neptunedb: !GetAtt itemstoreNeptuneCluster.Endpoint
-      Handler: index.handler
-      MemorySize: 256
-      Role:
-        'Fn::GetAtt':
-          - RecommendationsLambdaRole
-          - Arn
-      Runtime: python3.6
-      Timeout: 30
-      VpcConfig:
-        SecurityGroupIds:
-          - Ref: itemstoreNeptuneSecurityGroup
-        SubnetIds:
-          - Ref: itemstoreSubnet1
-          - Ref: itemstoreSubnet2
-
-  FunctionGetRecommendationsByItem:
-    Type: 'AWS::Lambda::Function'
-    Properties:
-      FunctionName: !Sub '${ProjectName}-GetRecommendationsByItem'
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - GetRecommendationsByItemCode
-      Description: Get friends who purchased this item
-      Environment:
-        Variables:
-          neptunedb: !GetAtt itemstoreNeptuneCluster.Endpoint
-      Handler: index.handler
-      MemorySize: 256
-      Role:
-        'Fn::GetAtt':
-          - RecommendationsLambdaRole
-          - Arn
-      Runtime: python3.6
-      Timeout: 30
-      VpcConfig:
-        SecurityGroupIds:
-          - Ref: itemstoreNeptuneSecurityGroup
-        SubnetIds:
-          - Ref: itemstoreSubnet1
-          - Ref: itemstoreSubnet2
-
-# ---------- LAMBDA FUNCTIONS for ELASTICSEARCH and ELASTICACHE  ---------
+# ---------- LAMBDA FUNCTIONS for ELASTICSEARCH ---------
   FunctionSearch:
-    Type: 'AWS::Lambda::Function'
+    Type: 'AWS::Serverless::Function'
     DependsOn:
       - ESSearchRole
       - ElasticsearchDomain
@@ -734,62 +501,16 @@ Resources:
         - ESSearchRole
         - Arn
       Runtime: python3.8
-      Layers:
-        - !Ref PythonLambdaLayer
-
-      Timeout: '60'
+      Timeout: 60
       VpcConfig:
         SecurityGroupIds:
           - Fn::GetAtt: [itemstoreVPC, DefaultSecurityGroup]
         SubnetIds:
           - Ref: itemstoreSubnet1
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - SearchCode
+      CodeUri: ./functions/APIs/Search/
       Environment:
         Variables:
           ESENDPOINT: !GetAtt
             - ElasticsearchDomain
             - DomainEndpoint
           REGION: !Ref 'AWS::Region'
-  FunctionGetBestSellers:
-    Type: 'AWS::Lambda::Function'
-    DependsOn:
-      - RedisRole
-      - ElastiCacheCluster
-      - TOrders
-    Properties:
-      FunctionName: !Sub '${ProjectName}-GetBestSellers'
-      Description: Get the top 20 best selling items from ElastiCache
-      Handler: index.handler
-      MemorySize: 256
-      Role: !GetAtt
-        - RedisRole
-        - Arn
-      Runtime: nodejs8.10
-      Timeout: '60'
-      VpcConfig:
-        SecurityGroupIds:
-          - Ref: redisLambdaSecurityGroup
-        SubnetIds:
-          - Ref: itemstoreSubnet1
-      Code:
-        S3Bucket: !FindInMap
-          - S3Buckets
-          - !Ref 'AWS::Region'
-          - Bucket
-        S3Key: !FindInMap
-          - Constants
-          - S3Keys
-          - GetBestSellersCode
-      Environment:
-        Variables:
-          URL: !GetAtt
-            - ElastiCacheCluster
-            - RedisEndpoint.Address
