@@ -4,6 +4,8 @@ TEMPLATEFILE=test-template.yaml
 PACKAGEFILE=package.yaml
 AWSPROFILE=default
 SRCS3=search-unicorngym
+STACKNAME=testiii
+# STACKNAME=itemstore
 
 sam build \
     --use-container \
@@ -18,7 +20,7 @@ sam package \
 
 sam deploy \
     --template-file $PACKAGEFILE \
-    --stack-name testiii \
+    --stack-name $STACKNAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile $AWSPROFILE \
-    --parameter-overrides ProjectName=testiii
+    --parameter-overrides ProjectName=$STACKNAME

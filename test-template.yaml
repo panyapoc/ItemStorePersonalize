@@ -949,7 +949,7 @@ Resources:
     Properties:
       RestApiId: !Ref AppApi
       ParentId: !Ref RecommendationsApiResource
-      PathPart: '{UserId}'
+      PathPart: '{userId}'
   RecommendationsByItemApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
@@ -1020,6 +1020,13 @@ Resources:
       RoleArn: !GetAtt SageMakerIamRole.Arn
       VolumeSizeInGB: 10
       DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
+    # Clickstream:
+    #   Type: AWS::Kinesis::Stream
+    #   Properties:
+    #       Name:
+    #         Fn::Sub: ${ProjectName}-Clickstream
+    #       RetentionPeriodHours: 24
+    #       ShardCount: 1
 
 Outputs:
   StagingS3Bucket:
