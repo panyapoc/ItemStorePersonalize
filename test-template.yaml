@@ -439,7 +439,7 @@ Resources:
   FunctionGetRecommendationsByItem:
     Type: 'AWS::Serverless::Function'
     Properties:
-      FunctionName: !Sub '${ProjectName}-GetRecommendations'
+      FunctionName: !Sub '${ProjectName}-GetRecommendationsByItem'
       CodeUri: ./functions/APIs/getRecommendationByItem
       Description: Get the product recommendations by item
       Role: !GetAtt

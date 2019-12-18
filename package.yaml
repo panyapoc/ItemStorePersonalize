@@ -346,7 +346,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/67f47557df5b3cfcacf4fec968ca457d
+      CodeUri: s3://search-unicorngym/9b27890637bf68893075146b4cb440d7
       Environment:
         Variables:
           ESENDPOINT:
@@ -429,14 +429,14 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/38a9263db4bcc7936ba1fbb7f9b6c920
+      CodeUri: s3://search-unicorngym/84f228d213529f4f23a3d3248185a1e2
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
         Fn::Sub: ${ProjectName}-GetRecommendations
-      CodeUri: s3://search-unicorngym/e3682aa5195e8099d70f77b582796de3
-      Description: Get the product recommendations
+      CodeUri: s3://search-unicorngym/585cd55d5c477fa358e85493811021ce
+      Description: Get the product recommendations by user
       Role:
         Fn::GetAtt:
         - LambdaAdminRole
@@ -445,7 +445,28 @@ Resources:
         Variables:
           ddb_tablename:
             Fn::Sub: ${ProjectName}-Items
-      Handler: getReccommendation.handler
+          Campaign_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp
+      Handler: getRecommendation.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Timeout: 30
+  FunctionGetRecommendationsByItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetRecommendationsByItem
+      CodeUri: s3://search-unicorngym/fd2e59a2fb5b958b17eff538a6ca7168
+      Description: Get the product recommendations by item
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Environment:
+        Variables:
+          ddb_tablename:
+            Fn::Sub: ${ProjectName}-Items
+          Campaign_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign
+      Handler: getRecommendationByItem.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -474,7 +495,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/26b460ee811642194acdf464f4255fdd
+      CodeUri: s3://search-unicorngym/f000ed7241d899c51e9ae153b7f7a218
       Environment:
         Variables:
           ESENDPOINT:
@@ -489,6 +510,23 @@ Resources:
       Action: lambda:InvokeFunction
       FunctionName:
         Ref: FunctionGetRecommendations
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: AppApi
+          - /*
+  FunctionGetRecommendationsByItemPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: FunctionGetRecommendationsByItem
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Join:
@@ -588,6 +626,36 @@ Resources:
       - StatusCode: 200
         ResponseModels:
           application/json: Empty
+  RecomendationsApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: RecommendationsApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
   RecomendationsByUserApiRequestGET:
     DependsOn:
     - FunctionGetRecommendations
@@ -618,11 +686,71 @@ Resources:
       - StatusCode: 200
         ResponseModels:
           application/json: Empty
-  RecomendationsApiRequestOPTIONS:
+  RecomendationsByUserApiRequestOPTIONS:
     Type: AWS::ApiGateway::Method
     Properties:
       ResourceId:
-        Ref: RecommendationsApiResource
+        Ref: RecommendationsByUserApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  RecomendationsByItemApiRequestGET:
+    DependsOn:
+    - FunctionGetRecommendationsByItem
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionGetRecommendationsByItem
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      ResourceId:
+        Ref: RecommendationsByItemItemIdApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  RecomendationsByItemApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: RecommendationsByItemItemIdApiResource
       RestApiId:
         Ref: AppApi
       AuthorizationType: None
