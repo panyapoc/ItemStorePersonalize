@@ -346,7 +346,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/2e00ef5129a1023905c0a0e1e313487c
+      CodeUri: s3://search-unicorngym/67f47557df5b3cfcacf4fec968ca457d
       Environment:
         Variables:
           ESENDPOINT:
@@ -407,7 +407,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://search-unicorngym/81ba7087f9db442b25459745c729ede9
+      CodeUri: s3://search-unicorngym/dab666b2225e37d7843ded113a671adb
   FunctionUploadItems:
     DependsOn: DataTableStream
     Type: AWS::Serverless::Function
@@ -429,13 +429,13 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/3a6ac0cdef29239afd901bf649e93382
+      CodeUri: s3://search-unicorngym/38a9263db4bcc7936ba1fbb7f9b6c920
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
         Fn::Sub: ${ProjectName}-GetRecommendations
-      CodeUri: s3://search-unicorngym/dde8b775fb57fffc7ccaff3610633100
+      CodeUri: s3://search-unicorngym/e3682aa5195e8099d70f77b582796de3
       Description: Get the product recommendations
       Role:
         Fn::GetAtt:
@@ -445,7 +445,7 @@ Resources:
         Variables:
           ddb_tablename:
             Fn::Sub: ${ProjectName}-Items
-      Handler: geReccommendation.handler
+      Handler: getReccommendation.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -474,7 +474,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/8c613e188ac8e0bef33ad96149b80bc4
+      CodeUri: s3://search-unicorngym/26b460ee811642194acdf464f4255fdd
       Environment:
         Variables:
           ESENDPOINT:
@@ -582,6 +582,36 @@ Resources:
         - StatusCode: 200
       ResourceId:
         Ref: RecommendationsApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  RecomendationsByUserApiRequestGET:
+    DependsOn:
+    - FunctionGetRecommendations
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionGetRecommendations
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      ResourceId:
+        Ref: RecommendationsByUserApiResource
       RestApiId:
         Ref: AppApi
       MethodResponses:
@@ -814,13 +844,31 @@ Resources:
         - AppApi
         - RootResourceId
       PathPart: recommendations
-  RecommendationsByItemApiResource:
+  RecommendationsByUserApiResource:
     Type: AWS::ApiGateway::Resource
     Properties:
       RestApiId:
         Ref: AppApi
       ParentId:
         Ref: RecommendationsApiResource
+      PathPart: '{UserId}'
+  RecommendationsByItemApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: recommendationsitem
+  RecommendationsByItemItemIdApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Ref: RecommendationsByItemApiResource
       PathPart: '{itemId}'
   ItemsApiResource:
     Type: AWS::ApiGateway::Resource

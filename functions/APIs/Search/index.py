@@ -33,6 +33,13 @@ def handler(event, context):
 
     r = requests.get(url, auth=awsauth, headers=headers, data=json.dumps(query))
 
+    print(r.text)
+    document = json.loads(r.text)
+
+    result = []
+    for item in document['hits']['hits'] :
+        result.append(item['_source'])
+
     # Create the response and add some extra content to support CORS
     response = {
         "statusCode": r.status_code,
@@ -40,7 +47,7 @@ def handler(event, context):
             "Access-Control-Allow-Origin": "*",
             "Access-Control-Allow-Credentials": True
         },
-        "body": r.text
+        "body": json.dumps(result)
     }
 
     return response
