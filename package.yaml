@@ -346,7 +346,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/9b27890637bf68893075146b4cb440d7
+      CodeUri: s3://search-unicorngym/d83c306b45c4351255493eded427925c
       Environment:
         Variables:
           ESENDPOINT:
@@ -429,7 +429,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/84f228d213529f4f23a3d3248185a1e2
+      CodeUri: s3://search-unicorngym/13991d5a8a2743c5ef525228f5f84311
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -495,15 +495,47 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/f000ed7241d899c51e9ae153b7f7a218
+      CodeUri: s3://search-unicorngym/952db5cea96f16a6193c735a6ecccb7c
       Environment:
         Variables:
           ESENDPOINT:
             Fn::GetAtt:
             - ElasticsearchDomain
             - DomainEndpoint
+          DDB_TABLE:
+            Fn::Sub: ${ProjectName}-Items
           REGION:
             Ref: AWS::Region
+  FunctionSearchRerank:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - FunctionSearch
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-Rerank
+      Description: Search then rerank
+      Handler: index.handler
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      CodeUri: s3://search-unicorngym/4c3df511f5fbd594a0de310011bfaeb2
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          DDB_TABLE:
+            Fn::Sub: ${ProjectName}-Items
+          SEARCH_ARN:
+            Fn::GetAtt:
+            - FunctionSearch
+            - Arn
+          RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
   FunctionGetRecommendationsPermissions:
     Type: AWS::Lambda::Permission
     Properties:
@@ -572,12 +604,12 @@ Resources:
           - ':'
           - Ref: AppApi
           - /*
-  FunctionSearchPermissions:
+  FunctionSearchRerankPermissions:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       FunctionName:
-        Ref: FunctionSearch
+        Ref: FunctionSearchRerank
       Principal: apigateway.amazonaws.com
       SourceArn:
         Fn::Join:
@@ -902,7 +934,7 @@ Resources:
           method.response.header.Access-Control-Allow-Origin: true
         StatusCode: '200'
   SearchApiRequestGET:
-    DependsOn: FunctionSearchPermissions
+    DependsOn: FunctionSearchRerankPermissions
     Type: AWS::ApiGateway::Method
     Properties:
       AuthorizationType: NONE
@@ -917,13 +949,14 @@ Resources:
             - Ref: AWS::Region
             - :lambda:path/2015-03-31/functions/
             - Fn::GetAtt:
-              - FunctionSearch
+              - FunctionSearchRerank
               - Arn
             - /invocations
         IntegrationResponses:
         - StatusCode: 200
       RequestParameters:
-        method.request.querystring.q: false
+        method.request.querystring.q: true
+        method.request.querystring.u: false
       ResourceId:
         Ref: SearchApiResource
       RestApiId:

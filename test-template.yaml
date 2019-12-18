@@ -482,7 +482,34 @@ Resources:
           ESENDPOINT: !GetAtt
             - ElasticsearchDomain
             - DomainEndpoint
+          DDB_TABLE: !Sub '${ProjectName}-Items'
           REGION: !Ref 'AWS::Region'
+  FunctionSearchRerank:
+    Type: 'AWS::Serverless::Function'
+    DependsOn:
+      - FunctionSearch
+    Properties:
+      FunctionName: !Sub '${ProjectName}-Rerank'
+      Description: Search then rerank
+      Handler: index.handler
+      MemorySize: 256
+      Role: !GetAtt
+        - LambdaAdminRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      CodeUri: ./functions/APIs/SearchRerank/
+      Environment:
+        Variables:
+          ESENDPOINT: !GetAtt
+            - ElasticsearchDomain
+            - DomainEndpoint
+          DDB_TABLE: !Sub '${ProjectName}-Items'
+          SEARCH_ARN: !GetAtt
+              - FunctionSearch
+              - Arn
+          RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
+
 
 # ---------- TODO:LAMBDA API gateway ---------
   FunctionGetRecommendationsPermissions:
@@ -545,11 +572,11 @@ Resources:
           - ':'
           - !Ref AppApi
           - /*
-  FunctionSearchPermissions:
+  FunctionSearchRerankPermissions:
     Type: 'AWS::Lambda::Permission'
     Properties:
       Action: 'lambda:InvokeFunction'
-      FunctionName: !Ref FunctionSearch
+      FunctionName: !Ref FunctionSearchRerank
       Principal: apigateway.amazonaws.com
       SourceArn: !Join
         - ''
@@ -854,7 +881,7 @@ Resources:
             method.response.header.Access-Control-Allow-Origin: true
           StatusCode: '200'
   SearchApiRequestGET:
-    DependsOn: FunctionSearchPermissions
+    DependsOn: FunctionSearchRerankPermissions
     Type: 'AWS::ApiGateway::Method'
     Properties:
       AuthorizationType: NONE
@@ -868,13 +895,14 @@ Resources:
             - !Ref 'AWS::Region'
             - ':lambda:path/2015-03-31/functions/'
             - !GetAtt
-              - FunctionSearch
+              - FunctionSearchRerank
               - Arn
             - /invocations
         IntegrationResponses:
           - StatusCode: 200
       RequestParameters:
-        method.request.querystring.q: false
+        method.request.querystring.q: true
+        method.request.querystring.u: false
       ResourceId: !Ref SearchApiResource
       RestApiId: !Ref AppApi
       MethodResponses:
@@ -960,3 +988,42 @@ Resources:
         - AppApi
         - RootResourceId
       PathPart: search
+
+# ========== Data Pipeline =================
+  StagingS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+  # SageMaker Execution Role
+  SageMakerIamRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess"
+        - "arn:aws:iam::aws:policy/IAMFullAccess"
+
+  # SageMaker notebook
+  NotebookInstance:
+    Type: "AWS::SageMaker::NotebookInstance"
+    Properties:
+      InstanceType: "ml.t2.medium"
+      NotebookInstanceName: !Sub '${ProjectName}-Notebook'
+      RoleArn: !GetAtt SageMakerIamRole.Arn
+      VolumeSizeInGB: !Ref VolumeSize
+      DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
+
+Outputs:
+  StagingS3Bucket:
+    Value: !Ref StagingS3Bucket
+    Description: S3 Bucket for object storage
