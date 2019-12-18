@@ -8,28 +8,38 @@ dynamodb = boto3.resource('dynamodb')
 ddb_tablename = os.environ["ddb_tablename"]
 table = dynamodb.Table(ddb_tablename)
 
-def lambda_handler(event, context):
-    Campaign_ARN = "arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp"
-
+def handler(event, context):
+    # "arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp"
+    Campaign_ARN = os.environ["Campaign_ARN"]
     try :
-        userId = event['pathParameters'].get("userId", "NoUserID")
+        userId = event['pathParameters'].get("itemId", "NoItemId")
     except :
-        userId = "NoUserID"
+        userId = "NoItemId"
     response = personalize_runtime.get_recommendations(
         campaignArn = Campaign_ARN,
         userId = userId
     )
 
     itemlist = [];
+    errcount = 0
     for item in response['itemList']:
         itemobj = table.get_item(
             Key={
                 'asin': item['itemId']
             }
         )
-        itemlist.append(itemobj['Item'])
+        try :
+            itemlist.append(itemobj['Item'])
+        except :
+            errcount = errcount+1
+    print("Can't find ",errcount)
+
 
     return {
         'statusCode': 200,
+        'headers': {
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Credentials": True
+        },
         'body': json.dumps(itemlist)
     }

@@ -9,7 +9,7 @@ ddb_tablename = os.environ["ddb_tablename"]
 table = dynamodb.Table(ddb_tablename)
 
 def handler(event, context):
-    Campaign_ARN = "arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp"
+    Campaign_ARN = os.environ["Campaign_ARN"]
 
     try :
         userId = event['pathParameters'].get("userId", "NoUserID")

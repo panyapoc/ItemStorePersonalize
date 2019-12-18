@@ -17,15 +17,32 @@ url = "https://" + os.environ["ESENDPOINT"] + "/_search" # ElasticSearch cluster
 def handler(event, context):
 
     # Put the user query into the query DSL for more accurate search results.
+    # query = {
+    #     "size": 25,
+    #     "query": {
+    #         "multi_match": {
+    #             "query": event["queryStringParameters"]["q"],
+    #             "fields": ["asin", "title"]
+    #         }
+    #     }
+    # }
+
     query = {
         "size": 25,
         "query": {
-            "multi_match": {
-                "query": event["queryStringParameters"]["q"],
-                "fields": ["asin", "title"]
+            "fuzzy": {
+                "title": {
+                    "value": event["queryStringParameters"]["q"],
+                    "fuzziness": "AUTO",
+                    "max_expansions": 50,
+                    "prefix_length": 0,
+                    "transpositions": True,
+                    "rewrite": "constant_score"
+                }
             }
         }
     }
+
     print(query)
 
     # ES 6.x requires an explicit Content-Type header
