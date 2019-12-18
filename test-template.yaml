@@ -415,7 +415,6 @@ Resources:
           TABLE_NAME: !Sub '${ProjectName}-Items'
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-          ## TODO: change this
       CodeUri: ./functions/setup/
   FunctionGetRecommendations:
     Type: 'AWS::Serverless::Function'
@@ -434,7 +433,6 @@ Resources:
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
-
 
   FunctionGetRecommendationsByItem:
     Type: 'AWS::Serverless::Function'
@@ -993,7 +991,7 @@ Resources:
   StagingS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref BucketName
+      BucketName: !Sub '${ProjectName}-staging'
   # SageMaker Execution Role
   SageMakerIamRole:
     Type: "AWS::IAM::Role"
@@ -1020,7 +1018,7 @@ Resources:
       InstanceType: "ml.t2.medium"
       NotebookInstanceName: !Sub '${ProjectName}-Notebook'
       RoleArn: !GetAtt SageMakerIamRole.Arn
-      VolumeSizeInGB: !Ref VolumeSize
+      VolumeSizeInGB: 10
       DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
 
 Outputs:
