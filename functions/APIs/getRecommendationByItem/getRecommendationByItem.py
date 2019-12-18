@@ -12,12 +12,12 @@ def handler(event, context):
     # "arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp"
     Campaign_ARN = os.environ["Campaign_ARN"]
     try :
-        userId = event['pathParameters'].get("itemId", "NoItemId")
+        itemId = event['pathParameters'].get("itemId", "NoItemId")
     except :
-        userId = "NoItemId"
+        itemId = "NoItemId"
     response = personalize_runtime.get_recommendations(
         campaignArn = Campaign_ARN,
-        userId = userId
+        itemId = itemId
     )
 
     itemlist = [];

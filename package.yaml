@@ -346,7 +346,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/d83c306b45c4351255493eded427925c
+      CodeUri: s3://search-unicorngym/d7dbf31a35945dd5cfec8c8657f4634e
       Environment:
         Variables:
           ESENDPOINT:
@@ -429,7 +429,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/13991d5a8a2743c5ef525228f5f84311
+      CodeUri: s3://search-unicorngym/3b3185028c01c2a00dcef5c3f9d671ba
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -495,7 +495,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/952db5cea96f16a6193c735a6ecccb7c
+      CodeUri: s3://search-unicorngym/3bb2461927e0ec16d8df3a7d89ed98d5
       Environment:
         Variables:
           ESENDPOINT:
@@ -1059,3 +1059,42 @@ Resources:
         - AppApi
         - RootResourceId
       PathPart: search
+  StagingS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Ref: BucketName
+  SageMakerIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sagemaker.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess
+      - arn:aws:iam::aws:policy/IAMFullAccess
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      InstanceType: ml.t2.medium
+      NotebookInstanceName:
+        Fn::Sub: ${ProjectName}-Notebook
+      RoleArn:
+        Fn::GetAtt:
+        - SageMakerIamRole
+        - Arn
+      VolumeSizeInGB:
+        Ref: VolumeSize
+      DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
+Outputs:
+  StagingS3Bucket:
+    Value:
+      Ref: StagingS3Bucket
+    Description: S3 Bucket for object storage
