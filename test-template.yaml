@@ -185,8 +185,22 @@ Resources:
                         - TItems
                         - Arn
                       - /*
-
-
+  APIGateWayRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${ProjectName}-APIGateWayRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - apigateway.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs'
+        - 'arn:aws:iam::aws:policy/AmazonKinesisFullAccess'
 
 # ---------- DYNAMODB TABLES DEFINITIONS ---------
   TItems:
@@ -1028,7 +1042,7 @@ Resources:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
-# PostClickEventFirehose
+# TODO: PostClickEventFirehose
   PostClickEventApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
@@ -1048,6 +1062,8 @@ Resources:
       Integration:
         Type: AWS
         IntegrationHttpMethod: POST
+        Credentials:
+          Fn::GetAtt: [APIGateWayRole, Arn]
         Uri:
           - !Join
           - ''
@@ -1096,7 +1112,30 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
           StatusCode: '200'
-# PostClickEventFuction
+  PostClickEventFuction:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub '${ProjectName}-PostClickEvent'
+      Description: PostClickEvent fucntion
+      Handler: index.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Role: !GetAtt
+        - LambdaAdminRole
+        - Arn
+      Timeout: 69
+      Environment:
+        Variables:
+          TABLE_NAME: !Sub '${ProjectName}-Items'
+      CodeUri: ./functions/APIs/PostClickEvent/
+  PostClickEventFuctionPermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref PostClickEventFuction
+      Principal: kinesis.amazonaws.com
+      SourceArn:
+        Fn::GetAtt: [PostClickEventStream, Arn]
 
 # PostClickEventS3
 
