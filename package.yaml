@@ -363,7 +363,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/59d23e9b03fa1be4a137f179fad07da3
+      CodeUri: s3://search-unicorngym/55908bae72283592ebf20c1d0ec8100f
       Environment:
         Variables:
           ESENDPOINT:
@@ -446,7 +446,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/b81c15ac9593b68d9545b571f7ddb6eb
+      CodeUri: s3://search-unicorngym/a938071e0ea88558112c51dee292b818
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -512,7 +512,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/69daeb73be8a7140fd2d03e2db1b63d5
+      CodeUri: s3://search-unicorngym/05d6c6a1fe9f173f5ed40e815a79d838
       Environment:
         Variables:
           ESENDPOINT:
@@ -539,7 +539,7 @@ Resources:
         - Arn
       Runtime: python3.8
       Timeout: 60
-      CodeUri: s3://search-unicorngym/4c3df511f5fbd594a0de310011bfaeb2
+      CodeUri: s3://search-unicorngym/02f43048b05ad4d5cb71a28e340282f2
       Environment:
         Variables:
           ESENDPOINT:
@@ -1147,11 +1147,11 @@ Resources:
           - - Fn::GetAtt:
               - PostClickEventStream
               - Arn
-          - /PutRecord
+            - /PutRecord
         IntegrationResponses:
         - StatusCode: 200
         RequestTemplates:
-        - '"{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}"'
+          application/json: ''
       ResourceId:
         Ref: PostClickEventApiResource
       RestApiId:
@@ -1210,7 +1210,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://search-unicorngym/92699a576583b93f5a0c15bdf7b6315d
+      CodeUri: s3://search-unicorngym/9a737818c584647f3e0dcd6386705668
   PostClickEventFuctionPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -1222,6 +1222,18 @@ Resources:
         Fn::GetAtt:
         - PostClickEventStream
         - Arn
+  PostClickEventMappping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+        - PostClickEventStream
+        - Arn
+      FunctionName:
+        Fn::GetAtt:
+        - PostClickEventFuction
+        - Arn
+      StartingPosition: TRIM_HORIZON
 Outputs:
   StagingS3Bucket:
     Value:

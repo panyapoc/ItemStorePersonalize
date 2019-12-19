@@ -1064,16 +1064,17 @@ Resources:
         IntegrationHttpMethod: POST
         Credentials:
           Fn::GetAtt: [APIGateWayRole, Arn]
-        Uri: !Join
-          - ''
-          - - !GetAtt
-              - PostClickEventStream
-              - Arn
-          - '/PutRecord'
+        Uri:
+          - !Join
+            - ''
+            - - !GetAtt
+                - PostClickEventStream
+                - Arn
+              - /PutRecord
         IntegrationResponses:
           - StatusCode: 200
         RequestTemplates:
-          - '"{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}"'
+          application/json: ''
       ResourceId: !Ref PostClickEventApiResource
       RestApiId: !Ref AppApi
       MethodResponses:
@@ -1135,6 +1136,16 @@ Resources:
       Principal: kinesis.amazonaws.com
       SourceArn:
         Fn::GetAtt: [PostClickEventStream, Arn]
+  PostClickEventMappping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt: [PostClickEventStream, Arn]
+      FunctionName:
+        Fn::GetAtt:
+          - "PostClickEventFuction"
+          - "Arn"
+      StartingPosition: "TRIM_HORIZON"
 
 # PostClickEventS3
 

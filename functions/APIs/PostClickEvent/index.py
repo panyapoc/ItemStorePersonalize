@@ -13,34 +13,35 @@ def lambda_handler(event, context):
         # Kinesis data is base64 encoded so decode here
         payload = base64.b64decode(record['kinesis']['data'])
         clickEvent = json.loads (payload)
-        send_movie_click(clickEvent['userID'], clickEvent['userID'])
+        send_movie_click(clickEvent)
         print ("Post Event to Personalize Successfully")
     return 'Successfully processed {} records.'.format(len(event['Records']))
 
-def send_movie_click(USER_ID, ITEM_ID):
+def send_movie_click(clickEvent):
     """
     Simulates a click as an envent
     to send an event to Amazon Personalize's Event Tracker
     """
     personalize_events = boto3.client(service_name='personalize-events')
-    session_dict = {}
     # Configure Session
     try:
-        session_ID = session_dict[USER_ID]
+        session_ID = clickEvent['sessionID']
     except:
-        session_dict[USER_ID] = str(uuid.uuid1())
-        session_ID = session_dict[USER_ID]
+        session_ID = str(uuid.uuid1())
 
     # Configure Properties:
     event = {
-    "itemId": str(ITEM_ID),
+    "itemId": str(clickEvent['itemID']),
     }
     event_json = json.dumps(event)
+
+    print ("**********")
+    print (session_ID)
 
     # Make Call
     personalize_events.put_events(
     trackingId = "8b1ce80f-3c86-4924-aaeb-f4a7bb992a53",
-    userId= USER_ID,
+    userId= clickEvent['userID'],
     sessionId = session_ID,
     eventList = [{
         'sentAt': int(time.time()),

@@ -26,7 +26,7 @@ def handler(event, context):
     except :
         userId = None
 
-    if userId != None :
+    if userId != None and len(res_list) != 0:
         rerank = personalize_runtime.get_personalized_ranking(
             campaignArn=RANKING_ARN,
             inputList=res_list,

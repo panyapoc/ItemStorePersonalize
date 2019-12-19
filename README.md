@@ -1,3 +1,21 @@
+# ItemStore
+
+# Deployment
+
+## Deployment
+
+1. Run deployment script
+
+```bin/bash
+sh deploy.sh <s3bucketname> <stackname> <AWSprofile (optional)>
+```
+
+* s3bucketname    - bucket for storing built source code
+* stackname       - stackname
+* AWSprofile      - API profile name (optional). if leave blank SAM will use the default profile
+
+02. Wait around 30 mins for the entier stack to deploy
+
 # API doc
 ## /items/{id}
 Get item by item id (asin)
@@ -121,8 +139,3 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun&u=A1
     "title": "Tipton Gun Vise"
 }, ..]
 ```
-
-
-
-
-#code
