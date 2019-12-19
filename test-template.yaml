@@ -1022,11 +1022,82 @@ Resources:
       DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
 
 # TODO: PostClickEvent
-PostClickEventPOST
-# PostClickEventApiResource
-# PostClickEventFuction
-# PostClickEventStream
+  PostClickEventStream:
+    Type: AWS::Kinesis::Stream
+      Properties:
+        Name: !Sub '${ProjectName}-Clickstream'
+        RetentionPeriodHours: 24
+        ShardCount: 1
 # PostClickEventFirehose
+  PostClickEventApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref AppApi
+      ParentId: !GetAtt
+        - AppApi
+        - RootResourceId
+      PathPart: clickevent
+  PostClickEventApiRequestPOST:
+    DependsOn:
+      - PostClickEventApiResource
+      - FunctionGetRecommendationsByItem
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri:
+          - !Join
+          - ''
+          - - !GetAtt
+              - PostClickEventStream
+              - Arn
+            - /PutRecord
+        IntegrationResponses:
+          - StatusCode: 200
+        RequestTemplates:
+          - '"{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}"'
+      ResourceId: !Ref PostClickEventApiResource
+      RestApiId: !Ref AppApi
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+  PostClickEventApiRequestOPTIONS:
+      DependsOn:
+      - PostClickEventApiResource
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ResourceId: !Ref PostClickEventApiResource
+      RestApiId: !Ref AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: >-
+                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+            ResponseTemplates:
+              application/json: ''
+            StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
+# PostClickEventFuction
+
 # PostClickEventS3
 
 # TODO: DataPipelineBN
