@@ -987,7 +987,7 @@ Resources:
         - RootResourceId
       PathPart: search
 
-# ========== Data Pipeline =================
+# ========== AL/ML TEAM =================
   StagingS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
@@ -1020,13 +1020,16 @@ Resources:
       RoleArn: !GetAtt SageMakerIamRole.Arn
       VolumeSizeInGB: 10
       DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
-    # Clickstream:
-    #   Type: AWS::Kinesis::Stream
-    #   Properties:
-    #       Name:
-    #         Fn::Sub: ${ProjectName}-Clickstream
-    #       RetentionPeriodHours: 24
-    #       ShardCount: 1
+
+# TODO: PostClickEvent
+PostClickEventPOST
+# PostClickEventApiResource
+# PostClickEventFuction
+# PostClickEventStream
+# PostClickEventFirehose
+# PostClickEventS3
+
+# TODO: DataPipelineBN
 
 Outputs:
   StagingS3Bucket:
