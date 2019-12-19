@@ -38,6 +38,8 @@
 1. AWS Account
 2. S3 Bucket to package the source code to
 3. AWS SAM CLI
+4. Create service link role for ES
+``create-service-linked-role --aws-service-name es``
 
 ## Deployment
 

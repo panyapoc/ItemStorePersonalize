@@ -363,7 +363,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/a5d73eb86085bb7f236b26679d82fb5e
+      CodeUri: s3://search-unicorngym/394e0be54426f92e0d158f8fcc9e095e
       Environment:
         Variables:
           ESENDPOINT:
@@ -446,7 +446,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/dc4ef0ac4a5c911161d5be98ec5a88f3
+      CodeUri: s3://search-unicorngym/61e839e1f7980f5b7866eed079283431
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -512,7 +512,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/803560bfdb3a888e6eccbaebc124e36e
+      CodeUri: s3://search-unicorngym/9fe6339c24433681c45716698ae04022
       Environment:
         Variables:
           ESENDPOINT:
