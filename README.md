@@ -61,7 +61,7 @@ Get item by item id (asin)
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/items/B00004NKIQ
 ```
 
-```
+``` Respose Example
 {
     "rekognition": "[\"Crib\",\"Furniture\",\"Fence\"]",
     "asin": "B00004NKIQ",
@@ -77,7 +77,7 @@ Get item recommendations anonymously
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendations/
 ```
 
-```
+``` Respose Example
 [{
     "rekognition": "[\"Electronics\",\"Helmet\",\"Clothing\",\"Apparel\",\"Headphones\",\"Headset\"]",
     "asin": "B001T7QJ9O",
@@ -98,7 +98,7 @@ Get personalize recommendations for userId
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendations/A1L5P841VIO02V
 ```
 
-```
+``` Respose Example
 [{
     "rekognition": "[\"Electronics\",\"Helmet\",\"Clothing\",\"Apparel\",\"Headphones\",\"Headset\"]",
     "asin": "B001T7QJ9O",
@@ -119,7 +119,7 @@ Get personalize recommendations base on item similarity
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendationsitem/2094869245
 ```
 
-```
+``` Respose Example
 [{
     "rekognition": "[\"Lamp\",\"Flashlight\"]",
     "asin": "B0081O93N2",
@@ -141,7 +141,7 @@ Searching
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun
 ```
 
-```
+``` Respose Example
 [{
     "rekognition": "[\"Lock\",\"Combination Lock\"]",
     "asin": "B00004SQM9",
@@ -163,7 +163,7 @@ Personalize Search
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun&u=A1L5P841VIO02V
 ```
 
-```
+``` Respose Example
 [{
     "rekognition": "[\"Gun\",\"Weapon\",\"Weaponry\",\"Handgun\"]",
     "asin": "B0002INNYU",
@@ -175,4 +175,24 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun&u=A1
     "imUrl": "http://ecx.images-amazon.com/images/I/41H2beGGbZL._SY300_.jpg",
     "title": "Tipton Gun Vise"
 }, ..]
+```
+
+## /clickevent
+Submit Click event to kinesis for realtime recommendation
+
+``` HTTP POST
+https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/clickevent
+
+{
+    "userID" : "AB2W04NI4OEAD"
+    "itemID" : "A148SVSWKTJKU6"
+    "sessionID" : "AB2W04NI4OEAD"
+}
+```
+
+``` Respose Example
+{
+  "SequenceNumber": "49602401777761666870538776314728212113850425834150559746",
+  "ShardId": "shardId-000000000000"
+}
 ```
