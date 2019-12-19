@@ -1,6 +1,6 @@
 #!/bin/bash
 BUILDFILE=templatebuild.yaml
-TEMPLATEFILE=test-template.yaml
+TEMPLATEFILE=template.yaml
 PACKAGEFILE=package.yaml
 AWSPROFILE=default
 SRCS3=search-unicorngym
@@ -17,6 +17,12 @@ sam package \
     --output-template-file $PACKAGEFILE \
     --s3-bucket $SRCS3 \
     --profile $AWSPROFILE
+
+# sam package \
+#     --template ./.aws-sam/build/$TEMPLATEFILE \
+#     --output-template-file $PACKAGEFILE \
+#     --s3-bucket $SRCS3 \
+#     --profile $AWSPROFILE
 
 sam deploy \
     --template-file $PACKAGEFILE \

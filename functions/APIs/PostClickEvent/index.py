@@ -40,7 +40,7 @@ def send_movie_click(clickEvent):
 
     # Make Call
     personalize_events.put_events(
-    trackingId = "8b1ce80f-3c86-4924-aaeb-f4a7bb992a53",
+    trackingId = os.environ["TRACKING_ID"] #"8b1ce80f-3c86-4924-aaeb-f4a7bb992a53"
     userId= clickEvent['userID'],
     sessionId = session_ID,
     eventList = [{

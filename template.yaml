@@ -1064,17 +1064,15 @@ Resources:
         IntegrationHttpMethod: POST
         Credentials:
           Fn::GetAtt: [APIGateWayRole, Arn]
-        Uri:
-          - !Join
-            - ''
-            - - !GetAtt
-                - PostClickEventStream
-                - Arn
-              - /PutRecord
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref 'AWS::Region'
+            - ':kinesis:action/PutRecord'
         IntegrationResponses:
           - StatusCode: 200
         RequestTemplates:
-          application/json: ''
+          application/json: '{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}'
       ResourceId: !Ref PostClickEventApiResource
       RestApiId: !Ref AppApi
       MethodResponses:
@@ -1126,7 +1124,8 @@ Resources:
       Timeout: 69
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
+          TRACKING_ID: 'PUT TRACKING ID HERE'
+          # TODO: PUT TRACKING ID HERE
       CodeUri: ./functions/APIs/PostClickEvent/
   PostClickEventFuctionPermission:
     Type: 'AWS::Lambda::Permission'

@@ -363,7 +363,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/55908bae72283592ebf20c1d0ec8100f
+      CodeUri: s3://search-unicorngym/32433d4476c6428968c47b3b76c9423c
       Environment:
         Variables:
           ESENDPOINT:
@@ -446,7 +446,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/a938071e0ea88558112c51dee292b818
+      CodeUri: s3://search-unicorngym/67ddd7b531b03b4988595505a3e42005
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -512,7 +512,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/05d6c6a1fe9f173f5ed40e815a79d838
+      CodeUri: s3://search-unicorngym/d544c4ed3fa6316fdb2f02ba950a1b25
       Environment:
         Variables:
           ESENDPOINT:
@@ -1142,16 +1142,15 @@ Resources:
           - APIGateWayRole
           - Arn
         Uri:
-        - Fn::Join:
+          Fn::Join:
           - ''
-          - - Fn::GetAtt:
-              - PostClickEventStream
-              - Arn
-            - /PutRecord
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :kinesis:action/PutRecord
         IntegrationResponses:
         - StatusCode: 200
         RequestTemplates:
-          application/json: ''
+          application/json: '{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}'
       ResourceId:
         Ref: PostClickEventApiResource
       RestApiId:
