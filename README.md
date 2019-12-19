@@ -1,6 +1,10 @@
 # ItemStore
 
-# Deployment
+## Prerequisite
+
+1. AWS Account
+2. S3 Bucket to package the source code to
+3. AWS SAM CLI
 
 ## Deployment
 
