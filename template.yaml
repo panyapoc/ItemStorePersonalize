@@ -1033,7 +1033,7 @@ Resources:
       NotebookInstanceName: !Sub '${ProjectName}-Notebook'
       RoleArn: !GetAtt SageMakerIamRole.Arn
       VolumeSizeInGB: 10
-      DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
+      DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
 
 # TODO: PostClickEvent
   PostClickEventStream:
