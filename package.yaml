@@ -363,7 +363,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/560dd690302dfeb47363877b5d7d8bb7
+      CodeUri: s3://search-unicorngym/59d23e9b03fa1be4a137f179fad07da3
       Environment:
         Variables:
           ESENDPOINT:
@@ -446,7 +446,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/96cc4942860081b8797f2f618199757a
+      CodeUri: s3://search-unicorngym/b81c15ac9593b68d9545b571f7ddb6eb
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -512,7 +512,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/11bcf32601f5e67c802af258d52b0cea
+      CodeUri: s3://search-unicorngym/69daeb73be8a7140fd2d03e2db1b63d5
       Environment:
         Variables:
           ESENDPOINT:
@@ -1142,11 +1142,11 @@ Resources:
           - APIGateWayRole
           - Arn
         Uri:
-        - Fn::Join: ''
-        - ''
-        - - Fn::GetAtt:
-            - PostClickEventStream
-            - Arn
+        - Fn::Join:
+          - ''
+          - - Fn::GetAtt:
+              - PostClickEventStream
+              - Arn
           - /PutRecord
         IntegrationResponses:
         - StatusCode: 200

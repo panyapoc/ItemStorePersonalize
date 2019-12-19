@@ -1064,13 +1064,12 @@ Resources:
         IntegrationHttpMethod: POST
         Credentials:
           Fn::GetAtt: [APIGateWayRole, Arn]
-        Uri:
-          - !Join
-            - ''
-            - - !GetAtt
-                - PostClickEventStream
-                - Arn
-            - '/PutRecord'
+        Uri: !Join
+          - ''
+          - - !GetAtt
+              - PostClickEventStream
+              - Arn
+          - '/PutRecord'
         IntegrationResponses:
           - StatusCode: 200
         RequestTemplates:
