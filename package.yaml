@@ -189,6 +189,23 @@ Resources:
                   - TItems
                   - Arn
                 - /*
+  APIGateWayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-APIGateWayRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
   TItems:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -346,7 +363,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/1f16ae19d89cdf182c484346bd3acc30
+      CodeUri: s3://search-unicorngym/560dd690302dfeb47363877b5d7d8bb7
       Environment:
         Variables:
           ESENDPOINT:
@@ -429,7 +446,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/ef179713f065e9ee93db4817798f6906
+      CodeUri: s3://search-unicorngym/96cc4942860081b8797f2f618199757a
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -495,7 +512,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/501f7d27fca8f2a95d4726247e90bbdb
+      CodeUri: s3://search-unicorngym/11bcf32601f5e67c802af258d52b0cea
       Environment:
         Variables:
           ESENDPOINT:
@@ -1012,7 +1029,7 @@ Resources:
         Ref: AppApi
       ParentId:
         Ref: RecommendationsApiResource
-      PathPart: '{UserId}'
+      PathPart: '{userId}'
   RecommendationsByItemApiResource:
     Type: AWS::ApiGateway::Resource
     Properties:
@@ -1092,6 +1109,119 @@ Resources:
         - Arn
       VolumeSizeInGB: 10
       DefaultCodeRepository: https://github.com/towwei/personalize-unicorngym2019.git
+  PostClickEventStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name:
+        Fn::Sub: ${ProjectName}-Clickstream
+      RetentionPeriodHours: 24
+      ShardCount: 1
+  PostClickEventApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: clickevent
+  PostClickEventApiRequestPOST:
+    DependsOn:
+    - PostClickEventApiResource
+    - FunctionGetRecommendationsByItem
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Credentials:
+          Fn::GetAtt:
+          - APIGateWayRole
+          - Arn
+        Uri:
+        - Fn::Join: ''
+        - ''
+        - - Fn::GetAtt:
+            - PostClickEventStream
+            - Arn
+          - /PutRecord
+        IntegrationResponses:
+        - StatusCode: 200
+        RequestTemplates:
+        - '"{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}"'
+      ResourceId:
+        Ref: PostClickEventApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  PostClickEventApiRequestOPTIONS:
+    DependsOn:
+    - PostClickEventApiResource
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: PostClickEventApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  PostClickEventFuction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-PostClickEvent
+      Description: PostClickEvent fucntion
+      Handler: index.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Timeout: 69
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+      CodeUri: s3://search-unicorngym/92699a576583b93f5a0c15bdf7b6315d
+  PostClickEventFuctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: PostClickEventFuction
+      Principal: kinesis.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+        - PostClickEventStream
+        - Arn
 Outputs:
   StagingS3Bucket:
     Value:

@@ -56,9 +56,9 @@ Mappings:
       PythonLambdaLayer: functions/PythonLambdaLayer.zip
       DeleteBucketsCode: functions/DeleteBuckets.zip
       SeederFunctionCode: aws-serverless-codecommit-seeder.zip
-Resources:
-# ---------- VPC - SUBNET - SECURITY GROUPS  ---------
 
+# ---------- VPC - SUBNET - SECURITY GROUPS  ---------
+Resources:
   itemstoreVPC:
     Type: "AWS::EC2::VPC"
     Properties:
@@ -1038,7 +1038,7 @@ Resources:
 # TODO: PostClickEvent
   PostClickEventStream:
     Type: AWS::Kinesis::Stream
-      Properties:
+    Properties:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
@@ -1066,11 +1066,11 @@ Resources:
           Fn::GetAtt: [APIGateWayRole, Arn]
         Uri:
           - !Join
-          - ''
-          - - !GetAtt
-              - PostClickEventStream
-              - Arn
-            - /PutRecord
+            - ''
+            - - !GetAtt
+                - PostClickEventStream
+                - Arn
+            - '/PutRecord'
         IntegrationResponses:
           - StatusCode: 200
         RequestTemplates:
@@ -1082,7 +1082,7 @@ Resources:
           ResponseModels:
             application/json: Empty
   PostClickEventApiRequestOPTIONS:
-      DependsOn:
+    DependsOn:
       - PostClickEventApiResource
     Type: 'AWS::ApiGateway::Method'
     Properties:

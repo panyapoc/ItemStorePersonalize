@@ -4,7 +4,7 @@ TEMPLATEFILE=test-template.yaml
 PACKAGEFILE=package.yaml
 AWSPROFILE=default
 SRCS3=search-unicorngym
-STACKNAME=testiii
+STACKNAME=itemstorealt
 # STACKNAME=itemstore
 
 sam build \
