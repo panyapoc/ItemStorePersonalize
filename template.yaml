@@ -1072,7 +1072,7 @@ Resources:
         IntegrationResponses:
           - StatusCode: 200
         RequestTemplates:
-          application/json: '{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}'
+          application/json: '{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}'
       ResourceId: !Ref PostClickEventApiResource
       RestApiId: !Ref AppApi
       MethodResponses:
