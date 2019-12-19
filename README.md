@@ -191,8 +191,8 @@ Submit Click event to kinesis for realtime recommendation
 https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/clickevent
 
 {
-    "userID" : "AB2W04NI4OEAD"
-    "itemID" : "A148SVSWKTJKU6"
+    "userID" : "AB2W04NI4OEAD",
+    "itemID" : "A148SVSWKTJKU6",
     "sessionID" : "AB2W04NI4OEAD"
 }
 ```
