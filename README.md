@@ -1,5 +1,38 @@
 # ItemStore
 
+## Folder Structure
+
+```
+├── Personalize                                    [DataPipeline Notebook]
+│   ├── 1.Building_Campaign_HRNN.ipynb
+│   ├── 2.Building_Campaign_P-rank.ipynb
+│   ├── 3.View_Campaign_And_Interactions_jit.ipynb
+│   ├── Data\ Loader.ipynb
+│   ├── Datasets
+│   │   ├── allstore-ratings.csv
+│   │   ├── convertcsv.csv
+│   │   ├── items_w_Metadata.csv
+│   │   ├── ratings.csv
+│   │   └── users.csv
+│   └── PersonalizeUnicornGymDemo.yaml
+├── README.md                                       [README]
+├── data                                            [Raw data Repo]
+├── deploycli.sh                                    [Deployment Script]
+├── functions                                       [Lambda Fuction Repo]
+│   ├── APIs                                        [API Lamdba Fuction Repo]
+│   │   ├── Getitem                                 [Getitem]
+│   │   ├── ListItems                               [ListItems]
+│   │   ├── PostClickEvent                          [PostClickEvent]
+│   │   ├── Search                                  [Search]
+│   │   ├── SearchRerank                            [SearchRerank]
+│   │   ├── getRecommendation                       [getRecommendation]
+│   │   └── getRecommendationByItem                 [getRecommendationByItem]
+│   ├── setup                                       [Setup Lambda Fuction]
+│   └── streaming                                   [Streaming Lambda Fuction]
+│       └── UpdateSearchCluster
+└── template.yaml                                   [SAM Cloudformation Template]
+```
+
 ## Prerequisite
 
 1. AWS Account
