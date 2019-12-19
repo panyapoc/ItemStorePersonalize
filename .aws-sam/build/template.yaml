@@ -1,0 +1,1239 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  ProjectName:
+    Description: Used as a prefix for project resources.  Can be up to 12 characters,
+      lowercase letters (a-z) only.
+    Type: String
+    Default: itemstore
+    AllowedPattern: ^[a-z]{1,12}
+    ConstraintDescription: The ProjectName can be up to 12 characters, lowercase letters
+      (a-z) only.
+Conditions:
+  IADRegion:
+    Fn::Equals:
+    - Ref: AWS::Region
+    - us-east-1
+Mappings:
+  S3Buckets:
+    us-east-1:
+      Bucket: aws-itemstore-demo
+      NeptuneDataBucket: itemstore-neptune
+      SeederFunctionBucket: fsd-aws-wildrydes-us-east-1
+    us-west-2:
+      Bucket: aws-itemstore-demo-us-west-2
+      NeptuneDataBucket: itemstore-neptune-us-west-2
+      SeederFunctionBucket: fsd-aws-wildrydes-us-west-2
+    eu-central-1:
+      Bucket: aws-itemstore-demo-eu-central-1
+      NeptuneDataBucket: itemstore-neptune-eu-central-1
+      SeederFunctionBucket: fsd-aws-wildrydes-eu-central-1
+    eu-west-1:
+      Bucket: aws-itemstore-demo-eu-west-1
+      NeptuneDataBucket: itemstore-neptune-eu-west-1
+      SeederFunctionBucket: fsd-aws-wildrydes-eu-west-1
+  Constants:
+    AppKeys:
+      SeedRepository: https://s3.amazonaws.com/aws-itemstore-demo/itemstore-webapp.zip
+    S3Keys:
+      ListOrdersCode: functions/ListOrders.zip
+      GetItemCode: functions/GetItem.zip
+      ListItemsCode: functions/ListItems.zip
+      UpdateCartCode: functions/UpdateCart.zip
+      GetCartItemCode: functions/GetCartItem.zip
+      ListItemsInCartCode: functions/ListItemsInCart.zip
+      AddToCartCode: functions/AddToCart.zip
+      RemoveFromCartCode: functions/RemoveFromCart.zip
+      GetBestSellersCode: functions/GetBestSellers.zip
+      CheckoutCode: functions/Checkout.zip
+      UploadItemsCode: functions/UploadItems.zip
+      GetRecommendationsCode: functions/GetRecommendations.zip
+      GetRecommendationsByItemCode: functions/GetRecommendationsByItem.zip
+      SearchCode: functions/Search.zip
+      UpdateSearchCode: functions/UpdateSearchCluster.zip
+      UpdateBestSellersCode: functions/UpdateBestSellers.zip
+      NeptuneLoaderCode: functions/NeptuneLoader.zip
+      NeptuneIAMCode: functions/NeptuneIAM.zip
+      itemstoreNeptuneS3DataPath: /data/
+      itemsData: data/items.json
+      CreateESRoleCode: functions/CreateESRole.zip
+      UpdateConfigCode: functions/UpdateConfig.zip
+      PythonLambdaLayer: functions/PythonLambdaLayer.zip
+      DeleteBucketsCode: functions/DeleteBuckets.zip
+      SeederFunctionCode: aws-serverless-codecommit-seeder.zip
+Resources:
+  itemstoreVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 172.31.0.0/16
+  itemstoreInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  itemstoreAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: itemstoreInternetGateway
+      VpcId:
+        Ref: itemstoreVPC
+  itemstoreSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:
+        Fn::Select:
+        - 0
+        - Fn::Cidr:
+          - Fn::GetAtt:
+            - itemstoreVPC
+            - CidrBlock
+          - 3
+          - 8
+      VpcId:
+        Ref: itemstoreVPC
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs:
+            Ref: AWS::Region
+  itemstoreSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:
+        Fn::Select:
+        - 1
+        - Fn::Cidr:
+          - Fn::GetAtt:
+            - itemstoreVPC
+            - CidrBlock
+          - 3
+          - 8
+      VpcId:
+        Ref: itemstoreVPC
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs:
+            Ref: AWS::Region
+  itemstoreVPCRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: itemstoreVPC
+  itemstoreVPCPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: itemstoreVPC
+  RouteToInternet:
+    Type: AWS::EC2::Route
+    DependsOn: itemstoreInternetGateway
+    Properties:
+      RouteTableId:
+        Ref: itemstoreVPCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: itemstoreInternetGateway
+  itemstoreVPCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: itemstoreVPCRouteTable
+      SubnetId:
+        Ref: itemstoreSubnet1
+  itemstoreVPCRouteTableAssociationTwo:
+    DependsOn: RouteToInternet
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: itemstoreVPCPublicRouteTable
+      SubnetId:
+        Ref: itemstoreSubnet2
+  DynamoDbRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-DynamoDbLambda
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+      - PolicyName: PutRidePolicy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:UpdateTable
+            - dynamodb:UpdateItem
+            - dynamodb:BatchWriteItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            Resource:
+            - Fn::GetAtt:
+              - TItems
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TItems
+                  - Arn
+                - /*
+  APIGateWayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-APIGateWayRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
+  TItems:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: ${ProjectName}-Items
+      AttributeDefinitions:
+      - AttributeName: asin
+        AttributeType: S
+      KeySchema:
+      - AttributeName: asin
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+  LambdaAdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-LambdaAdminRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AdministratorAccess
+  ESSearchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-ESSearchRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+      - PolicyName:
+          Fn::Sub: ${ProjectName}-lambda-policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - es:ESHttpPost
+            - es:ESHttpGet
+            Resource:
+              Fn::Join:
+              - ''
+              - - 'arn:aws:es:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - ':'
+                - domain/
+                - Ref: ElasticsearchDomain
+                - /*
+          - Effect: Allow
+            Action:
+            - s3:ListBucket
+            - s3:GetObject
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - dynamodb:DescribeStream
+            - dynamodb:GetRecords
+            - dynamodb:GetShardIterator
+            - dynamodb:ListStreams
+            Resource:
+            - Fn::GetAtt:
+              - TItems
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TItems
+                  - Arn
+                - /stream/*
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName:
+        Fn::Sub: ${ProjectName}-domain
+      ElasticsearchVersion: 7.1
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: 'false'
+        InstanceCount: '1'
+        ZoneAwarenessEnabled: 'false'
+        InstanceType: t2.small.elasticsearch
+      VPCOptions:
+        SubnetIds:
+        - Ref: itemstoreSubnet1
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 10
+        VolumeType: gp2
+      AccessPolicies:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action:
+          - es:*
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:aws:es:'
+              - Ref: AWS::Region
+              - ':'
+              - Ref: AWS::AccountId
+              - ':'
+              - domain/
+              - Fn::Sub: ${ProjectName}-domain
+              - /*
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: true
+  UpdateSearchCluster:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - ESSearchRole
+    - ElasticsearchDomain
+    - TItems
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-UpdateSearchCluster
+      Description: Update Elasticsearch cluster as items are added
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - ESSearchRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+        - Fn::GetAtt:
+          - itemstoreVPC
+          - DefaultSecurityGroup
+        SubnetIds:
+        - Ref: itemstoreSubnet1
+      CodeUri: UpdateSearchCluster
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          REGION:
+            Ref: AWS::Region
+  DataTableStream:
+    DependsOn: TItems
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 1
+      Enabled: true
+      EventSourceArn:
+        Fn::GetAtt:
+        - TItems
+        - StreamArn
+      FunctionName:
+        Fn::GetAtt:
+        - UpdateSearchCluster
+        - Arn
+      StartingPosition: TRIM_HORIZON
+  FunctionGetItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetItem
+      Description: Get item by id
+      Handler: getItem.handler
+      MemorySize: 256
+      Runtime: nodejs8.10
+      Role:
+        Fn::GetAtt:
+        - DynamoDbRole
+        - Arn
+      Timeout: 120
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+      CodeUri: FunctionGetItem
+  FunctionListItems:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-ListItems
+      Description: Get list of items by category
+      Handler: listItems.handler
+      MemorySize: 256
+      Runtime: nodejs8.10
+      Role:
+        Fn::GetAtt:
+        - DynamoDbRole
+        - Arn
+      Timeout: 120
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+      CodeUri: FunctionListItems
+  FunctionUploadItems:
+    DependsOn: DataTableStream
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-UploadItems
+      Description: Upload sample data for items
+      Handler: uploadItems.handler
+      Runtime: nodejs8.10
+      Role:
+        Fn::GetAtt:
+        - DynamoDbRole
+        - Arn
+      Timeout: 120
+      MemorySize: 512
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+          S3_BUCKET: products-recommendation-dataset
+          FILE_NAME: dummyitems.json
+      CodeUri: FunctionUploadItems
+  FunctionGetRecommendations:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetRecommendations
+      CodeUri: FunctionGetRecommendations
+      Description: Get the product recommendations by user
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Environment:
+        Variables:
+          ddb_tablename:
+            Fn::Sub: ${ProjectName}-Items
+          Campaign_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp
+      Handler: getRecommendation.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Timeout: 30
+  FunctionGetRecommendationsByItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetRecommendationsByItem
+      CodeUri: FunctionGetRecommendationsByItem
+      Description: Get the product recommendations by item
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Environment:
+        Variables:
+          ddb_tablename:
+            Fn::Sub: ${ProjectName}-Items
+          Campaign_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign
+      Handler: getRecommendationByItem.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Timeout: 30
+  FunctionSearch:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - ESSearchRole
+    - ElasticsearchDomain
+    - TItems
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-Search
+      Description: Search for items across item names, authors, and categories
+      Handler: index.handler
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+        - ESSearchRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+        - Fn::GetAtt:
+          - itemstoreVPC
+          - DefaultSecurityGroup
+        SubnetIds:
+        - Ref: itemstoreSubnet1
+      CodeUri: FunctionSearch
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          DDB_TABLE:
+            Fn::Sub: ${ProjectName}-Items
+          REGION:
+            Ref: AWS::Region
+  FunctionSearchRerank:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - FunctionSearch
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-Rerank
+      Description: Search then rerank
+      Handler: index.handler
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      CodeUri: FunctionSearchRerank
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          DDB_TABLE:
+            Fn::Sub: ${ProjectName}-Items
+          SEARCH_ARN:
+            Fn::GetAtt:
+            - FunctionSearch
+            - Arn
+          RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
+  FunctionGetRecommendationsPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: FunctionGetRecommendations
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: AppApi
+          - /*
+  FunctionGetRecommendationsByItemPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: FunctionGetRecommendationsByItem
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: AppApi
+          - /*
+  FunctionGetItemPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: FunctionGetItem
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: AppApi
+          - /*
+  FunctionListItemsPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: FunctionListItems
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: AppApi
+          - /*
+  FunctionSearchRerankPermissions:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: FunctionSearchRerank
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Join:
+        - ''
+        - - 'arn:aws:execute-api:'
+          - Ref: AWS::Region
+          - ':'
+          - Ref: AWS::AccountId
+          - ':'
+          - Ref: AppApi
+          - /*
+  AppApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name:
+        Fn::Sub: ${ProjectName}-Itemstore
+      Description: API used for Itemstore requests
+      FailOnWarnings: true
+  RecomendationsApiRequestGET:
+    DependsOn:
+    - FunctionGetRecommendations
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionGetRecommendations
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      ResourceId:
+        Ref: RecommendationsApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  RecomendationsApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: RecommendationsApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  RecomendationsByUserApiRequestGET:
+    DependsOn:
+    - FunctionGetRecommendations
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionGetRecommendations
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      ResourceId:
+        Ref: RecommendationsByUserApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  RecomendationsByUserApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: RecommendationsByUserApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  RecomendationsByItemApiRequestGET:
+    DependsOn:
+    - FunctionGetRecommendationsByItem
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionGetRecommendationsByItem
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      ResourceId:
+        Ref: RecommendationsByItemItemIdApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  RecomendationsByItemApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: RecommendationsByItemItemIdApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  ItemsApiRequestGET:
+    DependsOn:
+    - FunctionListItems
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionListItems
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      RequestParameters:
+        method.request.querystring.category: false
+      ResourceId:
+        Ref: ItemsApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  ItemsApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: ItemsApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  ItemItemApiRequestGET:
+    DependsOn: FunctionGetItemPermissions
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionGetItem
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+          ResponseTemplates:
+            application/json: $input.json('$.body')
+      RequestParameters:
+        method.request.path.id: true
+      ResourceId:
+        Ref: ItemItemApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  ItemItemApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: ItemItemApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  SearchApiRequestGET:
+    DependsOn: FunctionSearchRerankPermissions
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :lambda:path/2015-03-31/functions/
+            - Fn::GetAtt:
+              - FunctionSearchRerank
+              - Arn
+            - /invocations
+        IntegrationResponses:
+        - StatusCode: 200
+      RequestParameters:
+        method.request.querystring.q: true
+        method.request.querystring.u: false
+      ResourceId:
+        Ref: SearchApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  SearchApiRequestOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: SearchApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  RecommendationsApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: recommendations
+  RecommendationsByUserApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Ref: RecommendationsApiResource
+      PathPart: '{userId}'
+  RecommendationsByItemApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: recommendationsitem
+  RecommendationsByItemItemIdApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Ref: RecommendationsByItemApiResource
+      PathPart: '{itemId}'
+  ItemsApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: items
+  ItemItemApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Ref: ItemsApiResource
+      PathPart: '{id}'
+  SearchApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: search
+  StagingS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${ProjectName}-staging
+  SageMakerIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sagemaker.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess
+      - arn:aws:iam::aws:policy/IAMFullAccess
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      InstanceType: ml.t2.medium
+      NotebookInstanceName:
+        Fn::Sub: ${ProjectName}-Notebook
+      RoleArn:
+        Fn::GetAtt:
+        - SageMakerIamRole
+        - Arn
+      VolumeSizeInGB: 10
+      DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
+  PostClickEventStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name:
+        Fn::Sub: ${ProjectName}-Clickstream
+      RetentionPeriodHours: 24
+      ShardCount: 1
+  PostClickEventApiResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId:
+        Ref: AppApi
+      ParentId:
+        Fn::GetAtt:
+        - AppApi
+        - RootResourceId
+      PathPart: clickevent
+  PostClickEventApiRequestPOST:
+    DependsOn:
+    - PostClickEventApiResource
+    - FunctionGetRecommendationsByItem
+    Type: AWS::ApiGateway::Method
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: POST
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Credentials:
+          Fn::GetAtt:
+          - APIGateWayRole
+          - Arn
+        Uri:
+          Fn::Join:
+          - ''
+          - - 'arn:aws:apigateway:'
+            - Ref: AWS::Region
+            - :kinesis:action/PutRecord
+        IntegrationResponses:
+        - StatusCode: 200
+        RequestTemplates:
+          application/json: '{"application/json":{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"Clickstream"}}'
+      ResourceId:
+        Ref: PostClickEventApiResource
+      RestApiId:
+        Ref: AppApi
+      MethodResponses:
+      - StatusCode: 200
+        ResponseModels:
+          application/json: Empty
+  PostClickEventApiRequestOPTIONS:
+    DependsOn:
+    - PostClickEventApiResource
+    Type: AWS::ApiGateway::Method
+    Properties:
+      ResourceId:
+        Ref: PostClickEventApiResource
+      RestApiId:
+        Ref: AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+        - ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: '''Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'''
+            method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+            method.response.header.Access-Control-Allow-Origin: '''*'''
+          ResponseTemplates:
+            application/json: ''
+          StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+      - ResponseModels:
+          application/json: Empty
+        ResponseParameters:
+          method.response.header.Access-Control-Allow-Headers: true
+          method.response.header.Access-Control-Allow-Methods: true
+          method.response.header.Access-Control-Allow-Origin: true
+        StatusCode: '200'
+  PostClickEventFuction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-PostClickEvent
+      Description: PostClickEvent fucntion
+      Handler: index.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Timeout: 69
+      Environment:
+        Variables:
+          TRACKING_ID: PUT TRACKING ID HERE
+      CodeUri: PostClickEventFuction
+  PostClickEventFuctionPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: PostClickEventFuction
+      Principal: kinesis.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+        - PostClickEventStream
+        - Arn
+  PostClickEventMappping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn:
+        Fn::GetAtt:
+        - PostClickEventStream
+        - Arn
+      FunctionName:
+        Fn::GetAtt:
+        - PostClickEventFuction
+        - Arn
+      StartingPosition: TRIM_HORIZON
+Outputs:
+  StagingS3Bucket:
+    Value:
+      Ref: StagingS3Bucket
+    Description: S3 Bucket for object storage
