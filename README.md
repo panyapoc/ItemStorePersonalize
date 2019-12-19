@@ -7,7 +7,7 @@
 1. Run deployment script
 
 ```bin/bash
-sh deploy.sh <s3bucketname> <stackname> <AWSprofile (optional)>
+sh deploycli.sh <s3bucketname> <stackname> <AWSprofile (optional)>
 ```
 
 * s3bucketname    - bucket for storing built source code

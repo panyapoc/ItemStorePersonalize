@@ -1,6 +1,6 @@
 #!/bin/bash
 BUILDFILE=templatebuild.yaml
-TEMPLATEFILE=test-template.yaml
+TEMPLATEFILE=template.yaml
 PACKAGEFILE=package.yaml
 AWSPROFILE=default
 
