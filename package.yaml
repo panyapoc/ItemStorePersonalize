@@ -363,7 +363,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/32433d4476c6428968c47b3b76c9423c
+      CodeUri: s3://search-unicorngym/a5d73eb86085bb7f236b26679d82fb5e
       Environment:
         Variables:
           ESENDPOINT:
@@ -446,7 +446,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://search-unicorngym/67ddd7b531b03b4988595505a3e42005
+      CodeUri: s3://search-unicorngym/dc4ef0ac4a5c911161d5be98ec5a88f3
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -512,7 +512,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: itemstoreSubnet1
-      CodeUri: s3://search-unicorngym/d544c4ed3fa6316fdb2f02ba950a1b25
+      CodeUri: s3://search-unicorngym/803560bfdb3a888e6eccbaebc124e36e
       Environment:
         Variables:
           ESENDPOINT:
@@ -1207,9 +1207,8 @@ Resources:
       Timeout: 69
       Environment:
         Variables:
-          TABLE_NAME:
-            Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://search-unicorngym/9a737818c584647f3e0dcd6386705668
+          TRACKING_ID: PUT TRACKING ID HERE
+      CodeUri: s3://search-unicorngym/ed22f251aeb1a59968d07bd4e9026bd9
   PostClickEventFuctionPermission:
     Type: AWS::Lambda::Permission
     Properties:

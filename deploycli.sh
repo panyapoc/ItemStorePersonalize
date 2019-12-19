@@ -43,7 +43,7 @@ else
         --stack-name $STACKNAME \
         --capabilities CAPABILITY_NAMED_IAM \
         --profile $AWSPROFILE \
-        --parameter-overrides ProjectName=$STACKNAME=$STACKNAME
+        --parameter-overrides ProjectName=$STACKNAME
             # --disable-rollback
 
 fi

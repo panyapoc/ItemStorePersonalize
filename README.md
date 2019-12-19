@@ -48,7 +48,7 @@ sh deploycli.sh <s3bucketname> <stackname> <AWSprofile (optional)>
 ```
 
 * s3bucketname    - bucket for storing built source code
-* stackname       - stackname
+* stackname       - stackname ⚠️ have to be lower case up to 12 char ⚠️
 * AWSprofile      - API profile name (optional). if leave blank SAM will use the default profile
 
 02. Wait around 30 mins for the entier stack to deploy
