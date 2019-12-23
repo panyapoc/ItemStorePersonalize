@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-import os
 import base64
 import json
 import uuid
@@ -10,14 +9,19 @@ import time
 def handler(event, context):
     #print("Received event: " + json.dumps(event, indent=2))
     print("Look Here!!!!!")
+
     for record in event['Records']:
         # Kinesis data is base64 encoded so decode here
         payload = base64.b64decode(record['kinesis']['data'])
-        clickEvent = json.loads(payload)
-        print("====clickEvent====\n",clickEvent)
-        send_movie_click(clickEvent)
-        print ("Post Event to Personalize Successfully")
-    return 'Successfully processed {} records.'.format(len(event['Records']))
+        print(event)
+        try:
+           clickEvent = json.loads (payload)
+           print (clickEvent)
+           send_movie_click(clickEvent)
+           print ("Post Event to Personalize Successfully")
+        except:
+            print ("Record Failed Processing")
+
 
 def send_movie_click(clickEvent):
     """
@@ -42,12 +46,13 @@ def send_movie_click(clickEvent):
 
     # Make Call
     personalize_events.put_events(
-        trackingId = os.environ["TRACKING_ID"],
-        userId = clickEvent['userID'],
-        sessionId = session_ID,
-        eventList = [{
-            'sentAt': int(time.time()),
-            'eventType': 'EVENT_TYPE',
-            'properties': event_json
+    trackingId = os.environ["TRACKING_ID"],
+    userId= clickEvent['userID'],
+    sessionId = session_ID,
+    eventList = [{
+        'sentAt': int(time.time()),
+        'eventType': 'EVENT_TYPE',
+        'properties': event_json
         }]
     )
+
