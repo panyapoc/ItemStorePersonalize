@@ -60,6 +60,15 @@ sh deploycli.sh <s3bucketname> <stackname> <AWSprofile (optional)>
 
 02. Wait around 30 mins for the entier stack to deploy
 
+## Post Deployment
+
+1. Goto [Personalize](https://github.com/panyapoc/ItemStorePersonalize/tree/master/Personalize) to start Creating Campaign
+2. Once the Campaign is deploy go to the following fuction
+    * Rerank
+    * GetRecommendations
+    * GetRecommendationsByItem
+3. In the environment section and replace the ARN with the one create from jupyter notebook.
+
 # API doc
 ## /items/{id}
 Get item by item id (asin)
