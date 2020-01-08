@@ -1,0 +1,7 @@
+.productDetail td{
+    border:0px ;
+    padding:10px;
+}
+.productDetail span{
+     text-align: justify;
+}
