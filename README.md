@@ -20,6 +20,7 @@
 ├── deploycli.sh                                    [Deployment Script]
 ├── functions                                       [Lambda Fuction Repo]
 │   ├── APIs                                        [API Lamdba Fuction Repo]
+│   │   ├── GetDescriptionFunction                  [Get product description from Amz API]
 │   │   ├── Getitem                                 [Getitem]
 │   │   ├── ListItems                               [ListItems]
 │   │   ├── PostClickEvent                          [PostClickEvent]
@@ -30,7 +31,8 @@
 │   ├── setup                                       [Setup Lambda Fuction]
 │   └── streaming                                   [Streaming Lambda Fuction]
 │       └── UpdateSearchCluster
-└── template.yaml                                   [SAM Cloudformation Template]
+├── template.yaml                                   [SAM Cloudformation Template]
+└── webui                                           [Store user interface]
 ```
 
 ## Prerequisite
