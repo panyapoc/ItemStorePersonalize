@@ -17,7 +17,7 @@
 │   └── PersonalizeUnicornGymDemo.yaml
 ├── README.md                                       [README]
 ├── data                                            [Raw data Repo]
-├── deploycli.sh                                    [Deployment Script]
+├── deploy.sh                                       [Deployment Script]
 ├── functions                                       [Lambda Fuction Repo]
 │   ├── APIs                                        [API Lamdba Fuction Repo]
 │   │   ├── GetDescriptionFunction                  [Get product description from Amz API]
@@ -54,7 +54,7 @@ aws iam create-service-linked-role \
 1. Run deployment script
 
 ```bin/bash
-sh deploycli.sh <s3bucketname> <stackname> <AWSprofile (optional)>
+sh deploy.sh <s3bucketname> <stackname> <AWSprofile (optional)>
 ```
 
 * s3bucketname    - bucket for storing built source code
