@@ -33,6 +33,7 @@ Mappings:
     S3Keys:
       ListOrdersCode: functions/ListOrders.zip
       GetItemCode: functions/GetItem.zip
+      GetItemDescription: functions/GetItemDescription.zip
       ListItemsCode: functions/ListItems.zip
       UpdateCartCode: functions/UpdateCart.zip
       GetCartItemCode: functions/GetCartItem.zip
@@ -386,7 +387,7 @@ Resources:
       Description: Get item by id
       Handler: getItem.handler
       MemorySize: 256
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Role: !GetAtt
         - DynamoDbRole
         - Arn
@@ -395,6 +396,23 @@ Resources:
         Variables:
           TABLE_NAME: !Sub '${ProjectName}-Items'
       CodeUri: ./functions/APIs/GetItem/
+  FunctionGetItemDescription:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub '${ProjectName}-GetItemDescription'
+      Description: Get item description by id from Amazon
+      Handler: main.handler
+      MemorySize: 1344
+      Runtime: nodejs12.x
+      Role: !GetAtt
+        - LambdaAdminRole
+        - Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          # TODO: Still necessary?
+          CUSTOM_CHROME: true
+      CodeUri: ./functions/APIs/GetItemDescription/
   FunctionListItems:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -402,7 +420,7 @@ Resources:
       Description: Get list of items by category
       Handler: listItems.handler
       MemorySize: 256
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Role: !GetAtt
         - DynamoDbRole
         - Arn
@@ -418,7 +436,7 @@ Resources:
       FunctionName: !Sub '${ProjectName}-UploadItems'
       Description: Upload sample data for items
       Handler: uploadItems.handler
-      Runtime: nodejs8.10
+      Runtime: nodejs12.x
       Role: !GetAtt
         - DynamoDbRole
         - Arn
@@ -559,6 +577,21 @@ Resources:
     Properties:
       Action: 'lambda:InvokeFunction'
       FunctionName: !Ref FunctionGetItem
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Join
+        - ''
+        - - 'arn:aws:execute-api:'
+          - !Ref 'AWS::Region'
+          - ':'
+          - !Ref 'AWS::AccountId'
+          - ':'
+          - !Ref AppApi
+          - /*
+  FunctionGetItemDescriptionPermissions:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref FunctionGetItemDescription
       Principal: apigateway.amazonaws.com
       SourceArn: !Join
         - ''
@@ -892,6 +925,67 @@ Resources:
             method.response.header.Access-Control-Allow-Methods: true
             method.response.header.Access-Control-Allow-Origin: true
           StatusCode: '200'
+  ItemDescriptionApiRequestGET:
+    DependsOn:
+      - FunctionGetItemDescription
+      - FunctionGetItemDescriptionPermissions
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: GET
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Join
+          - ''
+          - - 'arn:aws:apigateway:'
+            - !Ref 'AWS::Region'
+            - ':lambda:path/2015-03-31/functions/'
+            - !GetAtt
+              - FunctionGetItemDescription
+              - Arn
+            - /invocations
+        IntegrationResponses:
+          - StatusCode: 200
+            ResponseTemplates:
+              application/json: $input.json('$.body')
+      RequestParameters:
+        method.request.querystring.asin: true
+      ResourceId: !Ref ItemDescriptionApiResource
+      RestApiId: !Ref AppApi
+      MethodResponses:
+        - StatusCode: 200
+          ResponseModels:
+            application/json: Empty
+  ItemDescriptionApiRequestOPTIONS:
+    Type: 'AWS::ApiGateway::Method'
+    Properties:
+      ResourceId: !Ref ItemDescriptionApiResource
+      RestApiId: !Ref AppApi
+      AuthorizationType: None
+      HttpMethod: OPTIONS
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: >-
+                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
+              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
+              method.response.header.Access-Control-Allow-Origin: '''*'''
+            ResponseTemplates:
+              application/json: ''
+            StatusCode: '200'
+        PassthroughBehavior: WHEN_NO_MATCH
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - ResponseModels:
+            application/json: Empty
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          StatusCode: '200'
   SearchApiRequestGET:
     DependsOn: FunctionSearchRerankPermissions
     Type: 'AWS::ApiGateway::Method'
@@ -992,6 +1086,14 @@ Resources:
       RestApiId: !Ref AppApi
       ParentId: !Ref ItemsApiResource
       PathPart: '{id}'
+  ItemDescriptionApiResource:
+    Type: 'AWS::ApiGateway::Resource'
+    Properties:
+      RestApiId: !Ref AppApi
+      ParentId: !GetAtt
+        - AppApi
+        - RootResourceId
+      PathPart: description
   SearchApiResource:
     Type: 'AWS::ApiGateway::Resource'
     Properties:
