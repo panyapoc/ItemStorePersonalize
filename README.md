@@ -35,16 +35,17 @@
 └── webui                                           [Store user interface]
 ```
 
-## Prerequisite
+## Prerequisites
 
 1. AWS Account
-2. S3 Bucket to package the source code to
-3. AWS SAM CLI
-4. Create service link role for ES
+2. An S3 Bucket to package the source code to
+3. Installed [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+4. Installed [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+5. Created a service linked role for ES, as below:
 
 ```
 aws iam create-service-linked-role \
---aws-service-name es \
+--aws-service-name es.amazonaws.com \
 --description "My service-linked role to Amazon ElasticSearch"
 ```
 
