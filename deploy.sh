@@ -1,7 +1,7 @@
 #!/bin/bash
 BUILDFILE=templatebuild.yaml
 TEMPLATEFILE=template.yaml
-PACKAGEFILE=package.yaml
+PACKAGEFILE=package.tmp.yaml
 AWSPROFILE=default
 
 SRCS3=$1

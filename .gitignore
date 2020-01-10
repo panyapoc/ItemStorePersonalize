@@ -2,6 +2,9 @@ venv/
 .aws-sam/
 *.zip
 
+# Temporary files:
+*.tmp.*
+
 node_modules
 build
 build/*
