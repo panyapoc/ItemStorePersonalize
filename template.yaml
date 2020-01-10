@@ -1,6 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Parameters:
+  BucketName:
+    Description: Name of the S3 bucket used to host deployment artifacts including web static assets.
+    Type: String
+    ConstraintDescription: Must be a valid S3 bucket in the same region as this deployment.
   ProjectName:
     Description: Used as a prefix for project resources.  Can be up to 12 characters, lowercase letters (a-z) only.
     Type: String
@@ -1102,6 +1106,149 @@ Resources:
         - AppApi
         - RootResourceId
       PathPart: search
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - RecomendationsApiRequestGET
+      - RecomendationsApiRequestOPTIONS
+      - RecomendationsByUserApiRequestGET
+      - RecomendationsByUserApiRequestOPTIONS
+      - RecomendationsByItemApiRequestGET
+      - RecomendationsByItemApiRequestOPTIONS
+      - ItemsApiRequestGET
+      - ItemsApiRequestOPTIONS
+      - ItemItemApiRequestGET
+      - ItemItemApiRequestOPTIONS
+      - ItemDescriptionApiRequestGET
+      - ItemDescriptionApiRequestOPTIONS
+      - SearchApiRequestGET
+      - SearchApiRequestOPTIONS
+    Properties:
+      Description: All store API deployment
+      RestApiId: !Ref AppApi
+      StageName: api-prod
+
+# ------- CLOUDFRONT DISTRIBUTION -------
+  WebsiteOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "web-access-${WebBucket}"
+
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          - Id: AllowAll
+            AllowedMethods:
+              - GET
+              - HEAD
+            AllowedOrigins:
+              - "*"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "index.html"
+
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn:
+      - WebBucket
+      - WebsiteOriginAccessIdentity
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:aws:s3:::"
+                  - Ref: WebBucket
+                  - "/*"
+            Principal:
+              CanonicalUser: !GetAtt WebsiteOriginAccessIdentity.S3CanonicalUserId
+  WebCDN:
+    Type: AWS::CloudFront::Distribution
+    DependsOn:
+      - ApiGatewayDeployment
+      - WebsiteOriginAccessIdentity
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior: # S3 origin is default
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods: # Cache get requests only
+            - GET
+            - HEAD
+            - OPTIONS
+          DefaultTTL: 60
+          MaxTTL: 60
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: webstatic
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors: # Alternative behavior for the API gateway
+          - AllowedMethods:
+              - DELETE
+              - GET
+              - HEAD
+              - OPTIONS
+              - PATCH
+              - POST
+              - PUT
+            CachedMethods: # Cache get requests only
+              - GET
+              - HEAD
+              - OPTIONS
+            Compress: true
+            DefaultTTL: 60
+            MaxTTL: 60
+            ForwardedValues:
+              Cookies:
+                Forward: all
+              Headers: # Need to whitelist all headers that API gateway requires:
+                - Accept
+                - Referer
+                - Athorization
+                - Content-Type
+              QueryString: true
+            PathPattern: "/api-prod/*"
+            TargetOriginId: api
+            ViewerProtocolPolicy: https-only
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+          - # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
+            # https://stackoverflow.com/q/38735306
+            #DomainName: !GetAtt WebBucket.DomainName
+            DomainName: !Sub ${WebBucket}.s3-${AWS::Region}.amazonaws.com
+            Id: webstatic
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${WebsiteOriginAccessIdentity}
+            OriginPath: /web
+          - DomainName:
+              Fn::Join:
+                - ""
+                - - Ref: AppApi
+                  - ".execute-api."
+                  - Ref: AWS::Region
+                  - ".amazonaws.com"
+            Id: api
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+            # Note we don't map to a particular OriginPath - all API deployments eligible IF PathPattern matched
+        PriceClass: PriceClass_All
 
 # ========== AL/ML TEAM =================
   StagingS3Bucket:
@@ -1256,3 +1403,6 @@ Outputs:
   StagingS3Bucket:
     Value: !Ref StagingS3Bucket
     Description: S3 Bucket for object storage
+  WebBucketName:
+    Value: !Ref WebBucket
+    Description: S3 Bucket for web asset storage

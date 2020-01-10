@@ -36,26 +36,55 @@ echo -e "Using '${CYAN}${AWSPROFILE}${NC}' as AWS profile"
 echo -e "Using '${CYAN}${SRCS3}${NC}' as source s3 bucket"
 echo -e "Using '${CYAN}${STACKNAME}${NC}' as CloudFormation stack name"
 
+# Check UI build requirements:
+if ! [[command -v node >/dev/null 2>&1] && [command -v npm >/dev/null 2>&1]]; then
+  echo -e "${RED}Error:${NC} To build the web UI from source, you need to install Node.JS and NPM."
+  echo "...and are recommended to do so via NVM for easy version management:"
+  echo "  Mac/Linux: https://github.com/nvm-sh/nvm"
+  echo "  Windows: https://github.com/coreybutler/nvm-windows"
+  exit 1
+fi
+
 # exit when any command fails
 set -e
 
-echo "Running sam build..."
+echo "Running web UI build..."
+cd webui
+npm install
+npm run build
+cd ..
+
+echo "Running SAM build..."
 sam build \
     --use-container \
     --template $TEMPLATEFILE \
     --profile $AWSPROFILE
 
-echo "Running sam package..."
+echo "Running SAM package..."
 sam package \
     --output-template-file $PACKAGEFILE \
     --s3-bucket $SRCS3 \
     --profile $AWSPROFILE
 
-echo "Running sam deploy..."
+echo "Running SAM deploy..."
 sam deploy \
     --template-file $PACKAGEFILE \
     --stack-name $STACKNAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile $AWSPROFILE \
-    --parameter-overrides ProjectName=$STACKNAME
+    --parameter-overrides BucketName=$SRCS3 ProjectName=$STACKNAME
         # --disable-rollback
+
+
+echo "Getting web bucket name from stack output..."
+WEBBUCKETNAME=`aws cloudformation describe-stacks --stack-name $STACKNAME \
+    --query 'Stacks[0].Outputs[?OutputKey==\`WebBucketName\`].OutputValue' \
+    --output text`
+echo $WEBBUCKETNAME
+
+echo "Uploading web assets..."
+cd webui/build
+aws s3 sync . "s3://${WEBBUCKETNAME}/web" --delete
+cd ../..
+
+echo -e "${CYAN}Done!${NC}"

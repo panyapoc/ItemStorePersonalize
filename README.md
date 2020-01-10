@@ -35,13 +35,22 @@
 └── webui                                           [Store user interface]
 ```
 
-## Prerequisites
+## Deployment Prerequisites
 
-1. AWS Account
-2. An S3 Bucket to package the source code to
-3. Installed [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
-4. Installed [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
-5. Created a service linked role for ES, as below:
+In order to deploy this stack, you'll need: 
+
+### Installed on your machine:
+1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) pointed to your target account and region with `aws configure`
+1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+1. [Docker Desktop](https://www.docker.com/products/docker-desktop)
+1. Tools to build the Web UI front end from source:
+    * [NodeJS v12](https://nodejs.org/en/download/) (You may wish to install Node via the **Node Version Manager** for [Mac/Linux](https://github.com/nvm-sh/nvm#installing-and-updating) or [Windows](https://github.com/coreybutler/nvm-windows#node-version-manager-nvm-for-windows)).
+    * If you see Web UI build errors relating to an incompatible version of [Python](https://www.python.org/), you may need to install additional versions of Python via [pyenv](https://github.com/pyenv/pyenv#simple-python-version-management-pyenv) (recommended), [conda](https://docs.conda.io/en/latest/), or any other Python environment management tool of your choice.
+
+### On the AWS cloud:
+1. Access (and [access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)) to an AWS Account, with sufficient permissions to create all the required resources.
+2. An S3 Bucket to package the source code to, in the same AWS region as you expect to deploy.
+3. Created a service linked role for ES, as below in AWS CLI:
 
 ```
 aws iam create-service-linked-role \
@@ -51,21 +60,29 @@ aws iam create-service-linked-role \
 
 ## Deployment
 
-1. Run deployment script
+### Step 1: Build and deploy the stack
 
+Run the deployment script, with parameters as follows:
 ```bin/bash
 sh deploy.sh <s3bucketname> <stackname> <AWSprofile (optional)>
 ```
 
-* s3bucketname    - bucket for storing built source code
-* stackname       - stackname ⚠️ have to be lower case up to 12 char ⚠️
-* AWSprofile      - API profile name (optional). if leave blank SAM will use the default profile
+* `s3bucketname` - The S3 bucket you've already created, for storing built source code (Lambda functions, etc.)
+* `stackname` - The name to give the CloudFormation Stack ⚠️ must be up to 12 lower case letters ⚠️
+* `AWSprofile` (Optional) - The API profile name, otherwise SAM will use the default profile
 
-02. Wait around 30 mins for the entier stack to deploy
+This script will:
 
-## Post Deployment
+* Build the web front end assets (locally) from ReactJS source code
+* Build required Lambda functions in Docker via AWS SAM, and upload these packages to your S3 bucket
+* Deploy the solution stack CloudFormation template via AWS SAM
+* Upload the web front end assets to the web hosting bucket created in the solution stack.
 
-1. Goto [Personalize](https://github.com/panyapoc/ItemStorePersonalize/tree/master/Personalize) to start Creating Campaign
+This may take up to and over an hour to complete, mostly on the deployment of infrastructure-intensive resources such as the ElasticSearch domain and CloudFront distribution.
+
+## Step 2: Post-deployment setup
+
+1. Goto [Personalize](/Personalize) to start Creating Campaign
 2. Once the Campaign is deploy go to the following fuction
     * Rerank
     * GetRecommendations
