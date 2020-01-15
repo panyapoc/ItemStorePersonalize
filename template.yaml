@@ -1282,7 +1282,7 @@ Resources:
       NotebookInstanceName: !Sub '${ProjectName}-Notebook'
       RoleArn: !GetAtt SageMakerIamRole.Arn
       VolumeSizeInGB: 10
-      DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
+      DefaultCodeRepository: https://github.com/apac-ml-tfc/personalize-demo
 
 # TODO: PostClickEvent
   PostClickEventStream:
