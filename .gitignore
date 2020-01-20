@@ -319,9 +319,10 @@ paket-files/
 # CodeRush personal settings
 .cr/personal
 
-# Python Tools for Visual Studio (PTVS)
+# Python stuff
 __pycache__/
 *.pyc
+.ipynb_checkpoints/
 
 # Cake - Uncomment if you are using it
 # tools/**
