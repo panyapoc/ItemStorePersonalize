@@ -1232,7 +1232,7 @@ Resources:
           - # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
             # https://stackoverflow.com/q/38735306
             #DomainName: !GetAtt WebBucket.DomainName
-            DomainName: !Sub ${WebBucket}.s3-${AWS::Region}.amazonaws.com
+            DomainName: !Sub ${WebBucket}.s3-website-${AWS::Region}.amazonaws.com
             Id: webstatic
             S3OriginConfig:
               OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${WebsiteOriginAccessIdentity}
