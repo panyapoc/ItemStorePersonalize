@@ -1248,7 +1248,8 @@ Resources:
             CustomOriginConfig:
               OriginProtocolPolicy: https-only
             # Note we don't map to a particular OriginPath - all API deployments eligible IF PathPattern matched
-        PriceClass: PriceClass_All
+        # Consider bumping up to PriceClass_All if South America or Australia are important to you:
+        PriceClass: PriceClass_200
 
 # ========== AL/ML TEAM =================
   StagingS3Bucket:
@@ -1274,12 +1275,31 @@ Resources:
         - "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess"
         - "arn:aws:iam::aws:policy/IAMFullAccess"
 
+  # Lifecycle config to expose CloudFormation stack name to notebook env vars
+  # TODO: This works for all notebook kernels, but not Jupyter terminals
+  # (Jupyter seems to start terminals *almost* in JupyterSystemEnv but without all initialisation)
+  NotebookLifecycleConfig:
+    Type: "AWS::SageMaker::NotebookInstanceLifecycleConfig"
+    Properties:
+      OnStart:
+        - Content:
+            # See this note on escaping variables in CloudFormation !Sub functions:
+            # https://stackoverflow.com/questions/44458304/how-to-escape-in-cloudformations-fnsub
+            Fn::Base64: !Sub |
+              for d in /home/ec2-user/anaconda3/envs/*/ ; do
+                touch "${!d}etc/conda/activate.d/env_vars.sh"
+                echo "export CLOUDFORMATION_STACK_NAME=${AWS::StackName}" >> "${!d}etc/conda/activate.d/env_vars.sh"
+              done
+  
   # SageMaker notebook
   NotebookInstance:
     Type: "AWS::SageMaker::NotebookInstance"
+    DependsOn:
+      - NotebookLifecycleConfig
     Properties:
       InstanceType: "ml.t2.medium"
       NotebookInstanceName: !Sub '${ProjectName}-Notebook'
+      LifecycleConfigName: !GetAtt NotebookLifecycleConfig.NotebookInstanceLifecycleConfigName
       RoleArn: !GetAtt SageMakerIamRole.Arn
       VolumeSizeInGB: 10
       DefaultCodeRepository: https://github.com/apac-ml-tfc/personalize-demo
