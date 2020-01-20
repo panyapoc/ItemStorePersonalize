@@ -33,7 +33,7 @@ export default class Home extends Component<HomeProps, HomeState> {
     if (!this.props.isAuthenticated) {
       return;
     }
-  
+
     this.setState({ isLoading: false });
   }
 
@@ -42,15 +42,17 @@ export default class Home extends Component<HomeProps, HomeState> {
       <div className="lander">
         <h1>The All Store</h1>
         <hr />
-        <p>Where we know what you want to buy before you do! #CompulsiveBuying</p>
+        <p>
+          Where we know what you want to buy before you do! #CompulsiveBuying
+        </p>
         <div className="button-container col-md-12">
           {/* <LinkContainer to="/signup">
           <a href="/signup">Sign up to explore the personalized experience</a>
           </LinkContainer> */}
         </div>
         {/* <img src={screenshot} className="img-fluid full-width" alt="Screenshot"></img> */}
-                
-    </div>);
+      </div>
+    );
   }
 
   renderHome() {
