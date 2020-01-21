@@ -1,5 +1,5 @@
-AWSTemplateFormatVersion: 2010-09-09
-Transform: AWS::Serverless-2016-10-31
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
 Parameters:
   BucketName:
     Description: Name of the S3 bucket used to host deployment artifacts including web static assets.
@@ -11,6 +11,17 @@ Parameters:
     Default: ItemStore
 Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
+Globals:
+  Function:
+    Timeout: 180
+  Api:
+    EndpointConfiguration: REGIONAL
+    # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-api-corsconfiguration.html
+    Cors: "'*''"
+    # Domain:
+    #   DomainName: www.my-domain.com
+    #   CertificateArn: my-valid-cert-arn
+    #   EndpointConfiguration: EDGE
 
 # ---------- VPC - SUBNET - SECURITY GROUPS  ---------
 Resources:
@@ -244,16 +255,14 @@ Resources:
         Variables:
           ESENDPOINT: !GetAtt ElasticsearchDomain.DomainEndpoint
           REGION: !Ref 'AWS::Region'
-
-# ----------  STREAMING TRIGGERS ---------
-  DataTableStream:
-    Type: 'AWS::Lambda::EventSourceMapping'
-    Properties:
-      BatchSize: 1
-      Enabled: true
-      EventSourceArn: !GetAtt TableItems.StreamArn
-      FunctionName: !GetAtt UpdateSearchCluster.Arn
-      StartingPosition: TRIM_HORIZON
+      Events:
+        DynamoDB:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt TableItems.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+            Enabled: false
 
 # ---------- API Function ------------
   FunctionGetItem:
@@ -270,6 +279,12 @@ Resources:
         Variables:
           TABLE_NAME: !Sub '${ProjectName}-Items'
       CodeUri: ./functions/APIs/GetItem/
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /items/{id}
+            Method: get
   FunctionGetItemDescription:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -285,6 +300,12 @@ Resources:
           # TODO: Still necessary?
           CUSTOM_CHROME: 'true'
       CodeUri: ./functions/APIs/GetItemDescription/
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /description
+            Method: get
   FunctionListItems:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -299,8 +320,13 @@ Resources:
         Variables:
           TABLE_NAME: !Sub '${ProjectName}-Items'
       CodeUri: ./functions/APIs/ListItems/
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /items
+            Method: get
   FunctionUploadItems:
-    DependsOn: DataTableStream
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-UploadItems'
@@ -331,6 +357,17 @@ Resources:
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /recommendations
+            Method: get
+        APIgatewayPath:
+          Type: Api
+          Properties:
+            Path: /recommendations/{userid}
+            Method: get
   FunctionGetRecommendationsByItem:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -346,6 +383,12 @@ Resources:
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /recommendationsitem/{itemid}
+            Method: get
 
 # ---------- LAMBDA FUNCTIONS for ELASTICSEARCH ---------
   FunctionSearch:
@@ -373,7 +416,6 @@ Resources:
           REGION: !Ref 'AWS::Region'
   FunctionSearchRerank:
     Type: 'AWS::Serverless::Function'
-    DependsOn:
     Properties:
       FunctionName: !Sub '${ProjectName}-Rerank'
       Description: Search then rerank
@@ -389,6 +431,12 @@ Resources:
           DDB_TABLE: !Sub '${ProjectName}-Items'
           SEARCH_ARN: !GetAtt FunctionSearch.Arn
           RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: get
 
 
 #   ApiGatewayDeployment:
@@ -414,127 +462,116 @@ Resources:
 #       StageName: api-prod
 
 # # ------- CLOUDFRONT DISTRIBUTION -------
-#   WebsiteOriginAccessIdentity:
-#     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
-#     Properties:
-#       CloudFrontOriginAccessIdentityConfig:
-#         Comment: !Sub "web-access-${WebBucket}"
+  WebsiteOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "web-access-${WebBucket}"
 
-#   WebBucket:
-#     Type: AWS::S3::Bucket
-#     Properties:
-#       CorsConfiguration:
-#         CorsRules:
-#           - Id: AllowAll
-#             AllowedMethods:
-#               - GET
-#               - HEAD
-#             AllowedOrigins:
-#               - "*"
-#       PublicAccessBlockConfiguration:
-#         BlockPublicAcls: true
-#         BlockPublicPolicy: true
-#         IgnorePublicAcls: true
-#         RestrictPublicBuckets: true
-#       WebsiteConfiguration:
-#         IndexDocument: "index.html"
-#         ErrorDocument: "index.html"
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          - Id: AllowAll
+            AllowedMethods:
+              - GET
+              - HEAD
+            AllowedOrigins:
+              - "*"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "index.html"
 
-#   WebBucketPolicy:
-#     Type: AWS::S3::BucketPolicy
-#     DependsOn:
-#       - WebBucket
-#       - WebsiteOriginAccessIdentity
-#     Properties:
-#       Bucket: !Ref WebBucket
-#       PolicyDocument:
-#         Statement:
-#           - Action:
-#               - "s3:GetObject"
-#             Effect: Allow
-#             Resource:
-#               Fn::Join:
-#                 - ""
-#                 - - "arn:aws:s3:::"
-#                   - Ref: WebBucket
-#                   - "/*"
-#             Principal:
-#               CanonicalUser: !GetAtt WebsiteOriginAccessIdentity.S3CanonicalUserId
-#   WebCDN:
-#     Type: AWS::CloudFront::Distribution
-#     DependsOn:
-#       - ApiGatewayDeployment
-#       - WebsiteOriginAccessIdentity
-#     Properties:
-#       DistributionConfig:
-#         DefaultCacheBehavior: # S3 origin is default
-#           AllowedMethods:
-#             - GET
-#             - HEAD
-#             - OPTIONS
-#           CachedMethods: # Cache get requests only
-#             - GET
-#             - HEAD
-#             - OPTIONS
-#           DefaultTTL: 60
-#           MaxTTL: 60
-#           ForwardedValues:
-#             QueryString: true
-#           TargetOriginId: webstatic
-#           ViewerProtocolPolicy: redirect-to-https
-#         CacheBehaviors: # Alternative behavior for the API gateway
-#           - AllowedMethods:
-#               - DELETE
-#               - GET
-#               - HEAD
-#               - OPTIONS
-#               - PATCH
-#               - POST
-#               - PUT
-#             CachedMethods: # Cache get requests only
-#               - GET
-#               - HEAD
-#               - OPTIONS
-#             Compress: true
-#             DefaultTTL: 60
-#             MaxTTL: 60
-#             ForwardedValues:
-#               Cookies:
-#                 Forward: all
-#               Headers: # Need to whitelist all headers that API gateway requires:
-#                 - Accept
-#                 - Referer
-#                 - Athorization
-#                 - Content-Type
-#               QueryString: true
-#             PathPattern: "/api-prod/*"
-#             TargetOriginId: api
-#             ViewerProtocolPolicy: https-only
-#         DefaultRootObject: index.html
-#         Enabled: true
-#         HttpVersion: http2
-#         Origins:
-#           - # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
-#             # https://stackoverflow.com/q/38735306
-#             #DomainName: !GetAtt WebBucket.DomainName
-#             DomainName: !Sub ${WebBucket}.s3-website-${AWS::Region}.amazonaws.com
-#             Id: webstatic
-#             S3OriginConfig:
-#               OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${WebsiteOriginAccessIdentity}
-#             OriginPath: /web
-#           - DomainName:
-#               Fn::Join:
-#                 - ""
-#                 - - Ref: AppApi
-#                   - ".execute-api."
-#                   - Ref: AWS::Region
-#                   - ".amazonaws.com"
-#             Id: api
-#             CustomOriginConfig:
-#               OriginProtocolPolicy: https-only
-#             # Note we don't map to a particular OriginPath - all API deployments eligible IF PathPattern matched
-#         # Consider bumping up to PriceClass_All if South America or Australia are important to you:
-#         PriceClass: PriceClass_200
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join ['',['arn:aws:s3:::',!Ref WebBucket,'/*']]
+            Principal:
+              CanonicalUser: !GetAtt WebsiteOriginAccessIdentity.S3CanonicalUserId
+  # WebCDN:
+  #   Type: AWS::CloudFront::Distribution
+  #   Properties:
+  #     DistributionConfig:
+  #       DefaultCacheBehavior: # S3 origin is default
+  #         AllowedMethods:
+  #           - GET
+  #           - HEAD
+  #           - OPTIONS
+  #         CachedMethods: # Cache get requests only
+  #           - GET
+  #           - HEAD
+  #           - OPTIONS
+  #         DefaultTTL: 60
+  #         MaxTTL: 60
+  #         ForwardedValues:
+  #           QueryString: true
+  #         TargetOriginId: webstatic
+  #         ViewerProtocolPolicy: redirect-to-https
+  #       CacheBehaviors: # Alternative behavior for the API gateway
+  #         - AllowedMethods:
+  #             - DELETE
+  #             - GET
+  #             - HEAD
+  #             - OPTIONS
+  #             - PATCH
+  #             - POST
+  #             - PUT
+  #           CachedMethods: # Cache get requests only
+  #             - GET
+  #             - HEAD
+  #             - OPTIONS
+  #           Compress: true
+  #           DefaultTTL: 60
+  #           MaxTTL: 60
+  #           ForwardedValues:
+  #             Cookies:
+  #               Forward: all
+  #             Headers: # Need to whitelist all headers that API gateway requires:
+  #               - Accept
+  #               - Referer
+  #               - Athorization
+  #               - Content-Type
+  #             QueryString: true
+  #           PathPattern: "/api-prod/*"
+  #           TargetOriginId: api
+  #           ViewerProtocolPolicy: https-only
+  #       DefaultRootObject: index.html
+  #       Enabled: true
+  #       HttpVersion: http2
+  #       Origins:
+  #         - # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
+  #           # https://stackoverflow.com/q/38735306
+  #           #DomainName: !GetAtt WebBucket.DomainName
+  #           DomainName: !Sub ${WebBucket}.s3-website-${AWS::Region}.amazonaws.com
+  #           Id: webstatic
+  #           S3OriginConfig:
+  #             OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${WebsiteOriginAccessIdentity}
+  #           OriginPath: /web
+  #         - DomainName:
+  #             Fn::Join:
+  #               - ""
+  #               - - Ref: AppApi
+  #                 - ".execute-api."
+  #                 - Ref: AWS::Region
+  #                 - ".amazonaws.com"
+  #           Id: api
+  #           CustomOriginConfig:
+  #             OriginProtocolPolicy: https-only
+  #           # Note we don't map to a particular OriginPath - all API deployments eligible IF PathPattern matched
+  #       # Consider bumping up to PriceClass_All if South America or Australia are important to you:
+  #       PriceClass: PriceClass_200
 
 # # ========== AL/ML TEAM =================
 #   StagingS3Bucket:
