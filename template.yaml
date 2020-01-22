@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Parameters:
-  BucketName:
-    Description: Name of the S3 bucket used to host deployment artifacts including web static assets.
-    Type: String
-    ConstraintDescription: Must be a valid S3 bucket in the same region as this deployment.
+  # BucketName:
+  #   Description: Name of the S3 bucket used to host deployment artifacts including web static assets.
+  #   Type: String
+  #   ConstraintDescription: Must be a valid S3 bucket in the same region as this deployment.
   ProjectName:
     Description: project.
     Type: String
@@ -17,7 +17,10 @@ Globals:
   Api:
     EndpointConfiguration: REGIONAL
     # https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-property-api-corsconfiguration.html
-    Cors: "'*''"
+    Cors:
+      AllowMethods: "'*'"
+      AllowHeaders: "'*'"
+      AllowOrigin: "'*'"
     # Domain:
     #   DomainName: www.my-domain.com
     #   CertificateArn: my-valid-cert-arn
@@ -231,7 +234,8 @@ Resources:
               - 'es:*'
             # arn:aws:es:<REGION>:<ACCOUNTID>:domain/<ESDOMAIN>/*
             Resource:   !Join ['',['arn:aws:es:',!Ref 'AWS::Region',':',!Ref 'AWS::AccountId',':domain/',!Sub '${ProjectName}-domain','/*']]
-      AdvancedOptions: 'rest.action.multi.allow_explicit_index: true'
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: true
 
 # ---------- LAMBDA STREAMING FUNCTIONS ---------
   UpdateSearchCluster:
@@ -626,6 +630,8 @@ Resources:
 #       VolumeSizeInGB: 10
 #       DefaultCodeRepository: https://github.com/apac-ml-tfc/personalize-demo
 
+#   AppApi:
+#     Type: AWS::Serverless::Api
 # # TODO: PostClickEvent
 #   PostClickEventStream:
 #     Type: AWS::Kinesis::Stream
@@ -638,15 +644,12 @@ Resources:
 #     Type: 'AWS::ApiGateway::Resource'
 #     Properties:
 #       RestApiId: !Ref AppApi
-#       ParentId: !GetAtt
-#         - AppApi
-#         - RootResourceId
+#       ParentId: !GetAtt AppApi.RootResourceId
 #       PathPart: clickevent
 #   PostClickEventApiRequestPOST:
 #     DependsOn:
-#       - PostClickEventApiResource
 #       - FunctionGetRecommendationsByItem
-#     Type: 'AWS::ApiGateway::Method'
+#     Type: AWS::ApiGateway::Method
 #     Properties:
 #       AuthorizationType: NONE
 #       HttpMethod: POST
@@ -655,24 +658,18 @@ Resources:
 #         IntegrationHttpMethod: POST
 #         Credentials:
 #           Fn::GetAtt: [APIGateWayRole, Arn]
-#         Uri: !Join
-#           - ''
-#           - - 'arn:aws:apigateway:'
-#             - !Ref 'AWS::Region'
-#             - ':kinesis:action/PutRecord'
+#         Uri: !Join ['',['arn:aws:apigateway:',!Ref 'AWS::Region',':kinesis:action/PutRecord']]
 #         IntegrationResponses:
-#           - StatusCode: 200
+#           - StatusCode: '200'
 #         RequestTemplates:
 #           application/json: !Sub '{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"${PostClickEventStream}"}'
 #       ResourceId: !Ref PostClickEventApiResource
 #       RestApiId: !Ref AppApi
 #       MethodResponses:
-#         - StatusCode: 200
+#         - StatusCode: '200'
 #           ResponseModels:
 #             application/json: Empty
 #   PostClickEventApiRequestOPTIONS:
-#     DependsOn:
-#       - PostClickEventApiResource
 #     Type: 'AWS::ApiGateway::Method'
 #     Properties:
 #       ResourceId: !Ref PostClickEventApiResource
@@ -709,9 +706,7 @@ Resources:
 #       Handler: index.handler
 #       MemorySize: 256
 #       Runtime: python3.8
-#       Role: !GetAtt
-#         - LambdaAdminRole
-#         - Arn
+#       Role: !GetAtt LambdaAdminRole.Arn
 #       Timeout: 69
 #       Environment:
 #         Variables:
@@ -724,20 +719,13 @@ Resources:
 #       Action: 'lambda:InvokeFunction'
 #       FunctionName: !Ref PostClickEventFuction
 #       Principal: kinesis.amazonaws.com
-#       SourceArn:
-#         Fn::GetAtt: [PostClickEventStream, Arn]
+#       SourceArn: !GetAtt PostClickEventStream.Arn
 #   PostClickEventMappping:
 #     Type: AWS::Lambda::EventSourceMapping
 #     Properties:
-#       EventSourceArn:
-#         Fn::GetAtt: [PostClickEventStream, Arn]
-#       FunctionName:
-#         Fn::GetAtt:
-#           - "PostClickEventFuction"
-#           - "Arn"
+#       EventSourceArn: !GetAtt PostClickEventStream.Arn
+#       FunctionName: !GetAtt PostClickEventFuction.Arn
 #       StartingPosition: "TRIM_HORIZON"
-
-# # PostClickEventS3
 
 # # TODO: DataPipelineBN
 

@@ -1,0 +1,604 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Parameters:
+  ProjectName:
+    Description: project.
+    Type: String
+    Default: ItemStore
+Conditions:
+  IADRegion:
+    Fn::Equals:
+    - Ref: AWS::Region
+    - us-east-1
+Globals:
+  Function:
+    Timeout: 180
+  Api:
+    EndpointConfiguration: REGIONAL
+    Cors:
+      AllowMethods: '''*'''
+      AllowHeaders: '''*'''
+      AllowOrigin: '''*'''
+Resources:
+  ItemStoreVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 172.31.0.0/16
+  ItemStoreInternetGateway:
+    Type: AWS::EC2::InternetGateway
+  ItemStoreAttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId:
+        Ref: ItemStoreInternetGateway
+      VpcId:
+        Ref: ItemStoreVPC
+  ItemStoreSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:
+        Fn::Select:
+        - 0
+        - Fn::Cidr:
+          - Fn::GetAtt:
+            - ItemStoreVPC
+            - CidrBlock
+          - 3
+          - 8
+      VpcId:
+        Ref: ItemStoreVPC
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs:
+            Ref: AWS::Region
+  ItemStoreSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      CidrBlock:
+        Fn::Select:
+        - 1
+        - Fn::Cidr:
+          - Fn::GetAtt:
+            - ItemStoreVPC
+            - CidrBlock
+          - 3
+          - 8
+      VpcId:
+        Ref: ItemStoreVPC
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs:
+            Ref: AWS::Region
+  ItemStoreVPCRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: ItemStoreVPC
+  ItemStoreVPCPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: ItemStoreVPC
+  RouteToInternet:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: ItemStoreVPCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: ItemStoreInternetGateway
+  ItemStoreVPCRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: ItemStoreVPCRouteTable
+      SubnetId:
+        Ref: ItemStoreSubnet1
+  ItemStoreVPCRouteTableAssociationTwo:
+    DependsOn: RouteToInternet
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId:
+        Ref: ItemStoreVPCPublicRouteTable
+      SubnetId:
+        Ref: ItemStoreSubnet2
+  DynamoDbRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-DynamoDbLambda
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
+      Policies:
+      - PolicyName: TableItemsAccess
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:UpdateTable
+            - dynamodb:UpdateItem
+            - dynamodb:BatchWriteItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            Resource:
+            - Fn::GetAtt:
+              - TableItems
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TableItems
+                  - Arn
+                - /*
+  APIGateWayRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-APIGateWayRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - apigateway.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+      - arn:aws:iam::aws:policy/AmazonKinesisFullAccess
+  TableItems:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Fn::Sub: ${ProjectName}-Items
+      AttributeDefinitions:
+      - AttributeName: asin
+        AttributeType: S
+      KeySchema:
+      - AttributeName: asin
+        KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+  LambdaAdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-LambdaAdminRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AdministratorAccess
+  ESSearchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-ESSearchRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+      - PolicyName:
+          Fn::Sub: ${ProjectName}-lambda-policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - es:ESHttpPost
+            - es:ESHttpGet
+            Resource:
+              Fn::Join:
+              - ''
+              - - 'arn:aws:es:'
+                - Ref: AWS::Region
+                - ':'
+                - Ref: AWS::AccountId
+                - :domain/
+                - Ref: ElasticsearchDomain
+                - /*
+          - Effect: Allow
+            Action:
+            - s3:ListBucket
+            - s3:GetObject
+            Resource: '*'
+          - Effect: Allow
+            Action:
+            - dynamodb:DescribeStream
+            - dynamodb:GetRecords
+            - dynamodb:GetShardIterator
+            - dynamodb:ListStreams
+            Resource:
+            - Fn::GetAtt:
+              - TableItems
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TableItems
+                  - Arn
+                - /stream/*
+  ElasticsearchDomain:
+    Type: AWS::Elasticsearch::Domain
+    Properties:
+      DomainName:
+        Fn::Sub: ${ProjectName}-domain
+      ElasticsearchVersion: '7.1'
+      ElasticsearchClusterConfig:
+        DedicatedMasterEnabled: false
+        InstanceCount: 1
+        ZoneAwarenessEnabled: false
+        InstanceType: t2.small.elasticsearch
+      VPCOptions:
+        SubnetIds:
+        - Ref: ItemStoreSubnet1
+      EBSOptions:
+        EBSEnabled: true
+        Iops: 0
+        VolumeSize: 10
+        VolumeType: gp2
+      AccessPolicies:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action:
+          - es:*
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:aws:es:'
+              - Ref: AWS::Region
+              - ':'
+              - Ref: AWS::AccountId
+              - :domain/
+              - Fn::Sub: ${ProjectName}-domain
+              - /*
+      AdvancedOptions:
+        rest.action.multi.allow_explicit_index: true
+  UpdateSearchCluster:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - TableItems
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-UpdateSearchCluster
+      Description: Update Elasticsearch cluster as items are added
+      Handler: index.handler
+      Role:
+        Fn::GetAtt:
+        - ESSearchRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+        - Fn::GetAtt:
+          - ItemStoreVPC
+          - DefaultSecurityGroup
+        SubnetIds:
+        - Ref: ItemStoreSubnet1
+      CodeUri: s3://panyapoc-src/4b0edf8eaae4349e9a815af223aff6c8
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          REGION:
+            Ref: AWS::Region
+      Events:
+        DynamoDB:
+          Type: DynamoDB
+          Properties:
+            Stream:
+              Fn::GetAtt:
+              - TableItems
+              - StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 1
+            Enabled: false
+  FunctionGetItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetItem
+      Description: Get item by id
+      Handler: getItem.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Role:
+        Fn::GetAtt:
+        - DynamoDbRole
+        - Arn
+      Timeout: 120
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+      CodeUri: s3://panyapoc-src/6d18b27e82aa1547b76da3d1230e45de
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /items/{id}
+            Method: get
+  FunctionGetItemDescription:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetItemDescription
+      Description: Get item description by id from Amazon
+      Handler: main.handler
+      MemorySize: 1344
+      Runtime: nodejs12.x
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          CUSTOM_CHROME: 'true'
+      CodeUri: s3://panyapoc-src/7c6a8afcd7c54ca8a3c59902bc73a0de
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /description
+            Method: get
+  FunctionListItems:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-ListItems
+      Description: Get list of items by category
+      Handler: listItems.handler
+      MemorySize: 256
+      Runtime: nodejs12.x
+      Role:
+        Fn::GetAtt:
+        - DynamoDbRole
+        - Arn
+      Timeout: 120
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+      CodeUri: s3://panyapoc-src/bb1cecd876f55d60ffe7a4072604ccbe
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /items
+            Method: get
+  FunctionUploadItems:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-UploadItems
+      Description: Upload sample data for items
+      Handler: uploadItems.handler
+      Runtime: nodejs12.x
+      Role:
+        Fn::GetAtt:
+        - DynamoDbRole
+        - Arn
+      Timeout: 120
+      MemorySize: 512
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Fn::Sub: ${ProjectName}-Items
+          S3_BUCKET: products-recommendation-dataset
+          FILE_NAME: dummyitems.json
+      CodeUri: s3://panyapoc-src/30063de3172ba13b3d2c6f812dc571a5
+  FunctionGetRecommendations:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetRecommendations
+      CodeUri: s3://panyapoc-src/5def98a1c8a7133d9c7f151ec1d04e85
+      Description: Get the product recommendations by user
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Environment:
+        Variables:
+          ddb_tablename:
+            Fn::Sub: ${ProjectName}-Items
+          Campaign_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp
+      Handler: getRecommendation.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Timeout: 30
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /recommendations
+            Method: get
+        APIgatewayPath:
+          Type: Api
+          Properties:
+            Path: /recommendations/{userid}
+            Method: get
+  FunctionGetRecommendationsByItem:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-GetRecommendationsByItem
+      CodeUri: s3://panyapoc-src/8872cc7347f852b91870805984bd66a6
+      Description: Get the product recommendations by item
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Environment:
+        Variables:
+          ddb_tablename:
+            Fn::Sub: ${ProjectName}-Items
+          Campaign_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign
+      Handler: getRecommendationByItem.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Timeout: 30
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /recommendationsitem/{itemid}
+            Method: get
+  FunctionSearch:
+    Type: AWS::Serverless::Function
+    DependsOn:
+    - TableItems
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-Search
+      Description: Search for items across item names, authors, and categories
+      Handler: index.handler
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+        - ESSearchRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      VpcConfig:
+        SecurityGroupIds:
+        - Fn::GetAtt:
+          - ItemStoreVPC
+          - DefaultSecurityGroup
+        SubnetIds:
+        - Ref: ItemStoreSubnet1
+      CodeUri: s3://panyapoc-src/99438abd4c0930e8e1e2f81fa2cef694
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          DDB_TABLE:
+            Fn::Sub: ${ProjectName}-Items
+          REGION:
+            Ref: AWS::Region
+  FunctionSearchRerank:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-Rerank
+      Description: Search then rerank
+      Handler: index.handler
+      MemorySize: 256
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Runtime: python3.8
+      Timeout: 60
+      CodeUri: s3://panyapoc-src/f339c1ad9b3d6ac559cbf8463b79b6fa
+      Environment:
+        Variables:
+          ESENDPOINT:
+            Fn::GetAtt:
+            - ElasticsearchDomain
+            - DomainEndpoint
+          DDB_TABLE:
+            Fn::Sub: ${ProjectName}-Items
+          SEARCH_ARN:
+            Fn::GetAtt:
+            - FunctionSearch
+            - Arn
+          RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /search
+            Method: get
+  WebsiteOriginAccessIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment:
+          Fn::Sub: web-access-${WebBucket}
+  WebBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+        - Id: AllowAll
+          AllowedMethods:
+          - GET
+          - HEAD
+          AllowedOrigins:
+          - '*'
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+  WebBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket:
+        Ref: WebBucket
+      PolicyDocument:
+        Statement:
+        - Action:
+          - s3:GetObject
+          Effect: Allow
+          Resource:
+            Fn::Join:
+            - ''
+            - - 'arn:aws:s3:::'
+              - Ref: WebBucket
+              - /*
+          Principal:
+            CanonicalUser:
+              Fn::GetAtt:
+              - WebsiteOriginAccessIdentity
+              - S3CanonicalUserId

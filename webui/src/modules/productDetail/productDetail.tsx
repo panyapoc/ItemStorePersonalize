@@ -1,4 +1,5 @@
 import React from "react";
+import AWS from 'aws-sdk';
 import { Product } from "../storeItem/storeItem";
 import config from "../../config";
 import "./productDetail.css";
@@ -14,6 +15,15 @@ import {
 import { useParams, withRouter } from "react-router";
 
 import { Html5Entities } from "html-entities";
+
+AWS.config.update({
+  region: config.region,
+  credentials: new AWS.CognitoIdentityCredentials({
+    IdentityPoolId: config.cognito.AnonymousPoolId
+  })
+});
+
+var kinesis = new AWS.Kinesis();
 
 const htmlEntities = new Html5Entities();
 
@@ -50,17 +60,29 @@ class ProductDetails extends React.Component<
     const values = queryString.parse(this.props.location.search);
 
     try {
-      fetch(config.api.ClickEventUrl, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          userID: values.uid,
-          itemID: this.props.match.params.id
-        })
+      var params = {
+        Data: JSON.stringify({
+              userID: values.uid,
+              itemID: this.props.match.params.id
+            })
+        PartitionKey: config.kinesis.PartitionKey, /* required */
+        StreamName: config.kinesis.PartitionKey /* required */
+      };
+      kinesis.putRecord(params, function(err, data) {
+        if (err) console.log(err, err.stack); // an error occurred
+        else     console.log(data);           // successful response
       });
+      // fetch(config.api.ClickEventUrl, {
+      //   method: "POST",
+      //   headers: {
+      //     Accept: "application/json",
+      //     "Content-Type": "application/json"
+      //   },
+      //   body: JSON.stringify({
+      //     userID: values.uid,
+      //     itemID: this.props.match.params.id
+      //   })
+      // });
     } catch (e) {
       console.log(e);
     }
