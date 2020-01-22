@@ -443,28 +443,6 @@ Resources:
             Method: get
 
 
-#   ApiGatewayDeployment:
-#     Type: AWS::ApiGateway::Deployment
-#     DependsOn:
-#       - RecomendationsApiRequestGET
-#       - RecomendationsApiRequestOPTIONS
-#       - RecomendationsByUserApiRequestGET
-#       - RecomendationsByUserApiRequestOPTIONS
-#       - RecomendationsByItemApiRequestGET
-#       - RecomendationsByItemApiRequestOPTIONS
-#       - ItemsApiRequestGET
-#       - ItemsApiRequestOPTIONS
-#       - ItemItemApiRequestGET
-#       - ItemItemApiRequestOPTIONS
-#       - ItemDescriptionApiRequestGET
-#       - ItemDescriptionApiRequestOPTIONS
-#       - SearchApiRequestGET
-#       - SearchApiRequestOPTIONS
-#     Properties:
-#       Description: All store API deployment
-#       RestApiId: !Ref AppApi
-#       StageName: api-prod
-
 # # ------- CLOUDFRONT DISTRIBUTION -------
   WebsiteOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
