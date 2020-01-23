@@ -293,7 +293,7 @@ Resources:
               - Fn::Sub: ${ProjectName}-domain
               - /*
       AdvancedOptions:
-        rest.action.multi.allow_explicit_index: true
+        rest.action.multi.allow_explicit_index: 'true'
   UpdateSearchCluster:
     Type: AWS::Serverless::Function
     DependsOn:
@@ -316,7 +316,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-src/4b0edf8eaae4349e9a815af223aff6c8
+      CodeUri: s3://panyapoc-src/b0f26cc9e892fb5f12a68a9aca67c0f3
       Environment:
         Variables:
           ESENDPOINT:
@@ -378,7 +378,7 @@ Resources:
       Environment:
         Variables:
           CUSTOM_CHROME: 'true'
-      CodeUri: s3://panyapoc-src/7c6a8afcd7c54ca8a3c59902bc73a0de
+      CodeUri: s3://panyapoc-src/bcf631a9e29cc47ea6d83812a5169d7b
       Events:
         APIgateway:
           Type: Api
@@ -430,7 +430,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://panyapoc-src/30063de3172ba13b3d2c6f812dc571a5
+      CodeUri: s3://panyapoc-src/37d152a6eac52cf2c4b9d6d22d6172db
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -511,7 +511,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-src/99438abd4c0930e8e1e2f81fa2cef694
+      CodeUri: s3://panyapoc-src/43fb3035c1fb907f260bcf4eb75d3cdf
       Environment:
         Variables:
           ESENDPOINT:
@@ -602,3 +602,148 @@ Resources:
               Fn::GetAtt:
               - WebsiteOriginAccessIdentity
               - S3CanonicalUserId
+  WebCDN:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultCacheBehavior:
+          AllowedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          CachedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          DefaultTTL: 60
+          MaxTTL: 60
+          ForwardedValues:
+            QueryString: true
+          TargetOriginId: webstatic
+          ViewerProtocolPolicy: redirect-to-https
+        CacheBehaviors:
+        - AllowedMethods:
+          - DELETE
+          - GET
+          - HEAD
+          - OPTIONS
+          - PATCH
+          - POST
+          - PUT
+          CachedMethods:
+          - GET
+          - HEAD
+          - OPTIONS
+          Compress: true
+          DefaultTTL: 60
+          MaxTTL: 60
+          ForwardedValues:
+            Cookies:
+              Forward: all
+            Headers:
+            - Accept
+            - Referer
+            - Athorization
+            - Content-Type
+            QueryString: true
+          PathPattern: /api-prod/*
+          TargetOriginId: api
+          ViewerProtocolPolicy: https-only
+        DefaultRootObject: index.html
+        Enabled: true
+        HttpVersion: http2
+        Origins:
+        - DomainName:
+            Fn::Sub: ${WebBucket}.s3.amazonaws.com
+          Id: webstatic
+          S3OriginConfig:
+            OriginAccessIdentity:
+              Fn::Sub: origin-access-identity/cloudfront/${WebsiteOriginAccessIdentity}
+          OriginPath: /web
+        - DomainName:
+            Fn::Join:
+            - ''
+            - - Ref: ServerlessRestApi
+              - .execute-api.
+              - Ref: AWS::Region
+              - .amazonaws.com
+          Id: api
+          CustomOriginConfig:
+            OriginProtocolPolicy: https-only
+        PriceClass: PriceClass_200
+  StagingS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Sub: ${ProjectName}-staging
+  SageMakerIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: sagemaker.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess
+      - arn:aws:iam::aws:policy/IAMFullAccess
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      InstanceType: ml.t2.medium
+      NotebookInstanceName:
+        Fn::Sub: ${ProjectName}-Notebook
+      RoleArn:
+        Fn::GetAtt:
+        - SageMakerIamRole
+        - Arn
+      VolumeSizeInGB: 10
+      DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
+  PostClickEventStream:
+    Type: AWS::Kinesis::Stream
+    Properties:
+      Name:
+        Fn::Sub: ${ProjectName}-Clickstream
+      RetentionPeriodHours: 24
+      ShardCount: 1
+  PostClickEventFuction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${ProjectName}-PostClickEvent
+      Description: PostClickEvent fucntion
+      Handler: index.handler
+      MemorySize: 256
+      Runtime: python3.8
+      Role:
+        Fn::GetAtt:
+        - LambdaAdminRole
+        - Arn
+      Timeout: 69
+      Environment:
+        Variables:
+          TRACKING_ID: 8b1ce80f-3c86-4924-aaeb-f4a7bb992a53
+      CodeUri: s3://panyapoc-src/449879dfb09c3a4088c7039bedb3226c
+      Events:
+        Clickstream:
+          Type: Kinesis
+          Properties:
+            Stream:
+              Fn::GetAtt:
+              - PostClickEventStream
+              - Arn
+            StartingPosition: TRIM_HORIZON
+Outputs:
+  WebBucketName:
+    Value:
+      Ref: WebBucket
+    Description: S3 Bucket for web asset storage
+  ProdDataEndpoint:
+    Description: API Prod stage endpoint
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/

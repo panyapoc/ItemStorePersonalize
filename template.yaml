@@ -444,7 +444,7 @@ Resources:
             Method: get
 
 
-# # ------- CLOUDFRONT DISTRIBUTION -------
+# ------- CLOUDFRONT DISTRIBUTION -------
   WebsiteOriginAccessIdentity:
     Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
     Properties:
@@ -538,7 +538,7 @@ Resources:
             # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
             # https://stackoverflow.com/q/38735306
             #DomainName: !GetAtt WebBucket.DomainName
-            DomainName: !Sub ${WebBucket}.s3-website-${AWS::Region}.amazonaws.com
+            DomainName: !Sub ${WebBucket}.s3.amazonaws.com
             Id: webstatic
             S3OriginConfig:
               OriginAccessIdentity: !Sub origin-access-identity/cloudfront/${WebsiteOriginAccessIdentity}
@@ -552,58 +552,59 @@ Resources:
         # Consider bumping up to PriceClass_All if South America or Australia are important to you:
         PriceClass: PriceClass_200
 
-# # ========== AL/ML TEAM =================
-#   StagingS3Bucket:
-#     Type: AWS::S3::Bucket
-#     Properties:
-#       BucketName: !Sub '${ProjectName}-staging'
-#   # SageMaker Execution Role
-#   SageMakerIamRole:
-#     Type: "AWS::IAM::Role"
-#     Properties:
-#       AssumeRolePolicyDocument:
-#         Version: "2012-10-17"
-#         Statement:
-#           -
-#             Effect: Allow
-#             Principal:
-#               Service: sagemaker.amazonaws.com
-#             Action: sts:AssumeRole
-#       Path: "/"
-#       ManagedPolicyArns:
-#         - "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
-#         - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-#         - "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess"
-#         - "arn:aws:iam::aws:policy/IAMFullAccess"
+# ========== AL/ML TEAM =================
+  StagingS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-staging'
 
-#   # Lifecycle config to expose CloudFormation stack name to notebook env vars
-#   # TODO: This works for all notebook kernels, but not Jupyter terminals
-#   # (Jupyter seems to start terminals *almost* in JupyterSystemEnv but without all initialisation)
-#   NotebookLifecycleConfig:
-#     Type: "AWS::SageMaker::NotebookInstanceLifecycleConfig"
-#     Properties:
-#       OnStart:
-#         - Content:
-#             # See this note on escaping variables in CloudFormation !Sub functions:
-#             # https://stackoverflow.com/questions/44458304/how-to-escape-in-cloudformations-fnsub
-#             Fn::Base64: !Sub |
-#               for d in /home/ec2-user/anaconda3/envs/*/ ; do
-#                 touch "${!d}etc/conda/activate.d/env_vars.sh"
-#                 echo "export CLOUDFORMATION_STACK_NAME=${AWS::StackName}" >> "${!d}etc/conda/activate.d/env_vars.sh"
-#               done
+# SageMaker Execution Role
+  SageMakerIamRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
+        - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess"
+        - "arn:aws:iam::aws:policy/IAMFullAccess"
+      Policies:
+        - PolicyName: TableItemsAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateTable'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:BatchWriteItem'
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:DeleteItem'
+                Resource:
+                  - !GetAtt TableItems.Arn
+                  - !Join ['', [!GetAtt TableItems.Arn, '/*']]
 
-#   # SageMaker notebook
-#   NotebookInstance:
-#     Type: "AWS::SageMaker::NotebookInstance"
-#     DependsOn:
-#       - NotebookLifecycleConfig
-#     Properties:
-#       InstanceType: "ml.t2.medium"
-#       NotebookInstanceName: !Sub '${ProjectName}-Notebook'
-#       LifecycleConfigName: !GetAtt NotebookLifecycleConfig.NotebookInstanceLifecycleConfigName
-#       RoleArn: !GetAtt SageMakerIamRole.Arn
-#       VolumeSizeInGB: 10
-#       DefaultCodeRepository: https://github.com/apac-ml-tfc/personalize-demo
+  # SageMaker notebook
+  NotebookInstance:
+    Type: "AWS::SageMaker::NotebookInstance"
+    Properties:
+      InstanceType: "ml.t2.medium"
+      NotebookInstanceName: !Sub '${ProjectName}-Notebook'
+      RoleArn: !GetAtt SageMakerIamRole.Arn
+      VolumeSizeInGB: 10
+      DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
+
 
 # TODO: PostClickEvent
   PostClickEventStream:
@@ -612,65 +613,7 @@ Resources:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
-# TODO: PostClickEventFirehose
-  PostClickEventApiResource:
-    Type: 'AWS::ApiGateway::Resource'
-    Properties:
-      RestApiId: !Ref ServerlessRestApi
-      ParentId: !GetAtt ServerlessRestApi.RootResourceId
-      PathPart: clickevent
-  PostClickEventApiRequestPOST:
-    DependsOn:
-      - FunctionGetRecommendationsByItem
-    Type: AWS::ApiGateway::Method
-    Properties:
-      AuthorizationType: NONE
-      HttpMethod: POST
-      Integration:
-        Type: AWS
-        IntegrationHttpMethod: POST
-        Credentials:
-          Fn::GetAtt: [APIGateWayRole, Arn]
-        Uri: !Join ['',['arn:aws:apigateway:',!Ref 'AWS::Region',':kinesis:action/PutRecord']]
-        IntegrationResponses:
-          - StatusCode: '200'
-        RequestTemplates:
-          application/json: !Sub '{"Data":"$util.base64Encode($input.body)","PartitionKey":"Partition1","StreamName":"${PostClickEventStream}"}'
-      ResourceId: !Ref PostClickEventApiResource
-      RestApiId: !Ref ServerlessRestApi
-      MethodResponses:
-        - StatusCode: '200'
-          ResponseModels:
-            application/json: Empty
-  PostClickEventApiRequestOPTIONS:
-    Type: 'AWS::ApiGateway::Method'
-    Properties:
-      ResourceId: !Ref PostClickEventApiResource
-      RestApiId: !Ref ServerlessRestApi
-      AuthorizationType: None
-      HttpMethod: OPTIONS
-      Integration:
-        Type: MOCK
-        IntegrationResponses:
-          - ResponseParameters:
-              method.response.header.Access-Control-Allow-Headers: >-
-                'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'
-              method.response.header.Access-Control-Allow-Methods: '''GET,POST,PUT,DELETE,OPTIONS,HEAD,PATCH'''
-              method.response.header.Access-Control-Allow-Origin: '''*'''
-            ResponseTemplates:
-              application/json: ''
-            StatusCode: '200'
-        PassthroughBehavior: WHEN_NO_MATCH
-        RequestTemplates:
-          application/json: '{"statusCode": 200}'
-      MethodResponses:
-        - ResponseModels:
-            application/json: Empty
-          ResponseParameters:
-            method.response.header.Access-Control-Allow-Headers: true
-            method.response.header.Access-Control-Allow-Methods: true
-            method.response.header.Access-Control-Allow-Origin: true
-          StatusCode: '200'
+# TODO: PostClickEventFirehose -> Move to using SDK on clientside
   PostClickEventFuction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -692,26 +635,13 @@ Resources:
           Properties:
             Stream: !GetAtt PostClickEventStream.Arn
             StartingPosition: TRIM_HORIZON
-  # PostClickEventFuctionPermission:
-  #   Type: 'AWS::Lambda::Permission'
-  #   Properties:
-  #     Action: 'lambda:InvokeFunction'
-  #     FunctionName: !Ref PostClickEventFuction
-  #     Principal: kinesis.amazonaws.com
-  #     SourceArn: !GetAtt PostClickEventStream.Arn
-  # PostClickEventMappping:
-  #   Type: AWS::Lambda::EventSourceMapping
-  #   Properties:
-  #     EventSourceArn: !GetAtt PostClickEventStream.Arn
-  #     FunctionName: !GetAtt PostClickEventFuction.Arn
-  #     StartingPosition: "TRIM_HORIZON"
 
 # # TODO: DataPipelineBN
 
-# Outputs:
-#   StagingS3Bucket:
-#     Value: !Ref StagingS3Bucket
-#     Description: S3 Bucket for object storage
-#   WebBucketName:
-#     Value: !Ref WebBucket
-#     Description: S3 Bucket for web asset storage
+Outputs:
+  WebBucketName:
+    Value: !Ref WebBucket
+    Description: S3 Bucket for web asset storage
+  ProdDataEndpoint:
+      Description: "API Prod stage endpoint"
+      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
