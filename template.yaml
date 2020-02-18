@@ -266,7 +266,7 @@ Resources:
             Stream: !GetAtt TableItems.StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 1
-            Enabled: false
+            Enabled: True
 
 # ---------- API Function ------------
 # when implecitly define api the logical name of AWS::ApiGateway::RestApi is ServerlessRestApi
