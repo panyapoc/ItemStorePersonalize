@@ -336,7 +336,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-UploadItems'
       Description: Upload sample data for items
-      Handler: uploadItems.handler
+      Handler: uploadItemscsv.handler
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
       Timeout: 120
