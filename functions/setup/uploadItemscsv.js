@@ -42,9 +42,9 @@ function uploadItemsData(item_items) {
       PutRequest: {
         Item: {
           "asin" : item.ITEM_ID,
-          "title" : item.TITLE,
-          "imUrl" : item.IMGURL,
-          "genre" : item.GENRE
+          "title" : item.TITLE ? item.TITLE : "no title",
+          "imUrl" : item.IMGURL ? item.IMGURL : "no imUrl",
+          "genre" : item.GENRE ? item.GENRE : "no tags"
         }
       }
     };
