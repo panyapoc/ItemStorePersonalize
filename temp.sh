@@ -22,4 +22,5 @@ sam deploy \
     --stack-name $STACKNAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile $AWSPROFILE \
+    --region us-east-1 \
     --parameter-overrides ProjectName=$STACKNAME

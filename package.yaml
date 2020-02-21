@@ -316,7 +316,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-src/b0f26cc9e892fb5f12a68a9aca67c0f3
+      CodeUri: s3://panyapoc-testsrc/ba5d4a8b43ae637a4447039dafa4521e
       Environment:
         Variables:
           ESENDPOINT:
@@ -335,7 +335,7 @@ Resources:
               - StreamArn
             StartingPosition: TRIM_HORIZON
             BatchSize: 1
-            Enabled: false
+            Enabled: true
   FunctionGetItem:
     Type: AWS::Serverless::Function
     Properties:
@@ -354,7 +354,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://panyapoc-src/6d18b27e82aa1547b76da3d1230e45de
+      CodeUri: s3://panyapoc-testsrc/6d18b27e82aa1547b76da3d1230e45de
       Events:
         APIgateway:
           Type: Api
@@ -378,7 +378,7 @@ Resources:
       Environment:
         Variables:
           CUSTOM_CHROME: 'true'
-      CodeUri: s3://panyapoc-src/bcf631a9e29cc47ea6d83812a5169d7b
+      CodeUri: s3://panyapoc-testsrc/dcbd71746422d712a092e061f5566eb3
       Events:
         APIgateway:
           Type: Api
@@ -403,7 +403,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://panyapoc-src/bb1cecd876f55d60ffe7a4072604ccbe
+      CodeUri: s3://panyapoc-testsrc/bb1cecd876f55d60ffe7a4072604ccbe
       Events:
         APIgateway:
           Type: Api
@@ -416,7 +416,7 @@ Resources:
       FunctionName:
         Fn::Sub: ${ProjectName}-UploadItems
       Description: Upload sample data for items
-      Handler: uploadItems.handler
+      Handler: uploadItemscsv.handler
       Runtime: nodejs12.x
       Role:
         Fn::GetAtt:
@@ -430,13 +430,13 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://panyapoc-src/37d152a6eac52cf2c4b9d6d22d6172db
+      CodeUri: s3://panyapoc-testsrc/fdd9405f445eb19482a68fdaf54e1d0a
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
         Fn::Sub: ${ProjectName}-GetRecommendations
-      CodeUri: s3://panyapoc-src/5def98a1c8a7133d9c7f151ec1d04e85
+      CodeUri: s3://panyapoc-testsrc/5def98a1c8a7133d9c7f151ec1d04e85
       Description: Get the product recommendations by user
       Role:
         Fn::GetAtt:
@@ -467,7 +467,7 @@ Resources:
     Properties:
       FunctionName:
         Fn::Sub: ${ProjectName}-GetRecommendationsByItem
-      CodeUri: s3://panyapoc-src/8872cc7347f852b91870805984bd66a6
+      CodeUri: s3://panyapoc-testsrc/8872cc7347f852b91870805984bd66a6
       Description: Get the product recommendations by item
       Role:
         Fn::GetAtt:
@@ -511,7 +511,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-src/43fb3035c1fb907f260bcf4eb75d3cdf
+      CodeUri: s3://panyapoc-testsrc/dd9788bab4f0b5fa70ec621321cea97d
       Environment:
         Variables:
           ESENDPOINT:
@@ -536,7 +536,7 @@ Resources:
         - Arn
       Runtime: python3.8
       Timeout: 60
-      CodeUri: s3://panyapoc-src/f339c1ad9b3d6ac559cbf8463b79b6fa
+      CodeUri: s3://panyapoc-testsrc/f339c1ad9b3d6ac559cbf8463b79b6fa
       Environment:
         Variables:
           ESENDPOINT:
@@ -692,6 +692,32 @@ Resources:
       - arn:aws:iam::aws:policy/AmazonS3FullAccess
       - arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess
       - arn:aws:iam::aws:policy/IAMFullAccess
+      - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+      Policies:
+      - PolicyName: TableItemsAccess
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+            - dynamodb:UpdateTable
+            - dynamodb:UpdateItem
+            - dynamodb:BatchWriteItem
+            - dynamodb:GetItem
+            - dynamodb:Scan
+            - dynamodb:DeleteItem
+            Resource:
+            - Fn::GetAtt:
+              - TableItems
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - TableItems
+                  - Arn
+                - /*
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
     Properties:
@@ -728,7 +754,7 @@ Resources:
       Environment:
         Variables:
           TRACKING_ID: 8b1ce80f-3c86-4924-aaeb-f4a7bb992a53
-      CodeUri: s3://panyapoc-src/449879dfb09c3a4088c7039bedb3226c
+      CodeUri: s3://panyapoc-testsrc/449879dfb09c3a4088c7039bedb3226c
       Events:
         Clickstream:
           Type: Kinesis
