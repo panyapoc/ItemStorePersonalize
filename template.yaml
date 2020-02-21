@@ -574,8 +574,9 @@ Resources:
       ManagedPolicyArns:
         - "arn:aws:iam::aws:policy/AmazonSageMakerFullAccess"
         - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-        - "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess"
-        - "arn:aws:iam::aws:policy/IAMFullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonPersonalizeFullAccess",
+        - "arn:aws:iam::aws:policy/IAMFullAccess",
+        - "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
       Policies:
         - PolicyName: TableItemsAccess
           PolicyDocument:
@@ -636,8 +637,6 @@ Resources:
             Stream: !GetAtt PostClickEventStream.Arn
             StartingPosition: TRIM_HORIZON
 
-# # TODO: DataPipelineBN
-
 Outputs:
   WebBucketName:
     Value: !Ref WebBucket
@@ -645,3 +644,5 @@ Outputs:
   ProdDataEndpoint:
       Description: "API Prod stage endpoint"
       Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+
+# TODO: OutPut Lambda ARN to be update with the campaingn
