@@ -1,37 +1,34 @@
-`use strict`
-
-const https = require("https");
-const url = require("url");
 const csv = require('csvtojson');
+const AWS = require("aws-sdk");
+const response = require('cfn-response');
+const uuid = require("uuid");
+const  documentClient = new AWS.DynamoDB.DocumentClient();
+const  s3Client = new AWS.S3();
 
-var AWS = require("aws-sdk"),
-  uuid = require("uuid"),
-  documentClient = new AWS.DynamoDB.DocumentClient(),
-  s3Client = new AWS.S3();
-
-const csvFilePath = 'items_w_Metadata.csv'
+const csvFilePath = 'items_w_Metadata.csv';
 // UploadItems - Upload sample set of items to DynamoDB
 exports.handler = function (event, context, callback) {
   console.log("Received event:", JSON.stringify(event, null, 2));
   if (event.RequestType === "Create") {
-    console.log('reading csv')
+    console.log('reading csv');
     csv()
     .fromFile(csvFilePath)
     .then((jsonObj)=>{
         console.log(jsonObj);
         uploadItemsData(jsonObj);
+        response.send(event,context, "SUCCESS");
+        callback(null,"items uploaded");
     }).catch(function (err) {
       console.log('Error: ',err);
       var responseData = {
         Error: "Upload items failed"
       };
       console.log(responseData.Error);
-      sendResponse(event, callback, context.logStreamName, "FAILED", responseData);
+      response.send(event, context, "FAILED", responseData);
     });
-    sendResponse(event, callback, context.logStreamName, "SUCCESS");
     return;
   } else {
-    sendResponse(event, callback, context.logStreamName, "SUCCESS");
+    response.send(event,context, "SUCCESS");
     return;
   }
 };
@@ -40,8 +37,8 @@ function uploadItemsData(item_items) {
   var items_array = [];
   for (var i in item_items) {
     var item = item_items[i];
-    console.log(item.ITEM_ID)
-    var item = {
+    // console.log(item.ITEM_ID);
+    var newitem = {
       PutRequest: {
         Item: {
           "asin" : item.ITEM_ID,
@@ -51,7 +48,7 @@ function uploadItemsData(item_items) {
         }
       }
     };
-    items_array.push(item);
+    items_array.push(newitem);
   }
 
   // Batch items into arrays of 25 for BatchWriteItem limit
@@ -62,7 +59,7 @@ function uploadItemsData(item_items) {
   }
 
   split_arrays.forEach(function (item_data) {
-    putItem(item_data)
+    putItem(item_data);
   });
 }
 
@@ -85,49 +82,8 @@ function putItem(items_array) {
   };
   var batchWritePromise = documentClient.batchWrite(params).promise();
   batchWritePromise.then(function (data) {
-    console.log("Items imported");
+    console.log(`${items_array.length} Items imported`);
   }).catch(function (err) {
     console.log(err);
   });
-}
-
-// Send response back to CloudFormation template runner
-function sendResponse(event, callback, logStreamName, responseStatus, responseData) {
-  const responseBody = JSON.stringify({
-    Status: responseStatus,
-    Reason: `See the details in CloudWatch Log Stream: ${logStreamName}`,
-    PhysicalResourceId: logStreamName,
-    StackId: event.StackId,
-    RequestId: event.RequestId,
-    LogicalResourceId: event.LogicalResourceId,
-    Data: responseData,
-  });
-
-  console.log("RESPONSE BODY:\n", responseBody);
-
-  const parsedUrl = url.parse(event.ResponseURL);
-  const options = {
-    hostname: parsedUrl.hostname,
-    port: 443,
-    path: parsedUrl.path,
-    method: "PUT",
-    headers: {
-      "Content-Type": "",
-      "Content-Length": responseBody.length,
-    },
-  };
-
-  const req = https.request(options, (res) => {
-    console.log("STATUS:", res.statusCode);
-    console.log("HEADERS:", JSON.stringify(res.headers));
-    callback(null, "Successfully sent stack response!");
-  });
-
-  req.on("error", (err) => {
-    console.log("sendResponse Error:\n", err);
-    callback(err);
-  });
-
-  req.write(responseBody);
-  req.end();
 }

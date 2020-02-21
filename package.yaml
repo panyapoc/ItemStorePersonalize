@@ -316,7 +316,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-testsrc/ba5d4a8b43ae637a4447039dafa4521e
+      CodeUri: s3://panyapoc-testsrc/2d506b6b4bbbde8eceb6db04b7e36e5d
       Environment:
         Variables:
           ESENDPOINT:
@@ -354,7 +354,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://panyapoc-testsrc/6d18b27e82aa1547b76da3d1230e45de
+      CodeUri: s3://panyapoc-testsrc/9a91782e704b80e1ddc3bad1bafe2f9f
       Events:
         APIgateway:
           Type: Api
@@ -378,7 +378,7 @@ Resources:
       Environment:
         Variables:
           CUSTOM_CHROME: 'true'
-      CodeUri: s3://panyapoc-testsrc/dcbd71746422d712a092e061f5566eb3
+      CodeUri: s3://panyapoc-testsrc/a74570f737358bca9232f44740d2bcba
       Events:
         APIgateway:
           Type: Api
@@ -403,7 +403,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://panyapoc-testsrc/bb1cecd876f55d60ffe7a4072604ccbe
+      CodeUri: s3://panyapoc-testsrc/3b4970c668edfb2cad19589f24079397
       Events:
         APIgateway:
           Type: Api
@@ -430,7 +430,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://panyapoc-testsrc/fdd9405f445eb19482a68fdaf54e1d0a
+      CodeUri: s3://panyapoc-testsrc/0ba4623fa9ca91d6ec522ab488ae39a9
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -511,7 +511,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-testsrc/dd9788bab4f0b5fa70ec621321cea97d
+      CodeUri: s3://panyapoc-testsrc/783339d48e8e6ed0570242b3be34ec0b
       Environment:
         Variables:
           ESENDPOINT:

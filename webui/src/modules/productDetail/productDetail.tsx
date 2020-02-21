@@ -64,7 +64,7 @@ class ProductDetails extends React.Component<
         Data: JSON.stringify({
               userID: values.uid,
               itemID: this.props.match.params.id
-            })
+            }),
         PartitionKey: config.kinesis.PartitionKey, /* required */
         StreamName: config.kinesis.PartitionKey /* required */
       };

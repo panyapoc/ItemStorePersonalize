@@ -1,3 +1,5 @@
+const apitree = 'https://hpr4qcneol.execute-api.us-east-1.amazonaws.com/Prod';
+
 export default {
   region: "us-east-1",
   kinesis:{
@@ -10,12 +12,12 @@ export default {
 
   },
   api: {
-    GetListUrl: "/api-prod/recommendations/",
-    GetDetailsUrl: "/api-prod/items/",
-    ClickEventUrl: "/api-prod/clickevent",
-    SearchUrl: "/api-prod/search",
-    RecommendSimilar: "/api-prod/recommendationsitem/",
-    GetDescriptionForProduct: "/api-prod/description"
+    GetListUrl: `${apitree}/recommendations/`,
+    GetDetailsUrl: `${apitree}/items/`,
+    ClickEventUrl: `${apitree}/clickevent`,
+    SearchUrl: `${apitree}/search`,
+    RecommendSimilar: `${apitree}/recommendationsitem/`,
+    GetDescriptionForProduct: `${apitree}/description`
   },
   user: {
     id: "AIXZKN4ACSKI"

@@ -23,7 +23,7 @@ exports.handler = function(event, context, callback) {
       console.log(responseData.Error);
       sendResponse(event, callback, context.logStreamName, "FAILED", responseData);
     });
-    sendResponse(event, callback, context.logStreamName, "SUCCESS");
+    // sendResponse(event, callback, context.logStreamName, "SUCCESS");
     return;
   } else {
     sendResponse(event, callback, context.logStreamName, "SUCCESS");
@@ -34,7 +34,7 @@ function uploadItemsData(item_items) {
   var items_array = [];
   for (var i in item_items) {
     var item = item_items[i];
-    console.log(item.asin)
+    // console.log(item.asin)
     var item = {
       PutRequest: {
        Item: item
@@ -50,7 +50,7 @@ function uploadItemsData(item_items) {
     }
 
   split_arrays.forEach( function(item_data) {
-    putItem(item_data)
+    putItem(item_data);
   });
 }
 
