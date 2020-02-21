@@ -2,9 +2,9 @@
 BUILDFILE=templatebuild.yaml
 TEMPLATEFILE=template.yaml
 PACKAGEFILE=package.yaml
-AWSPROFILE=default
-SRCS3=panyapoc-src
-STACKNAME=pocstor
+AWSPROFILE=howto
+SRCS3=panyapoc-testsrc
+STACKNAME=teststr
 
 sam build \
     --use-container \
