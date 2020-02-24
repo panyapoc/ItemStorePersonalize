@@ -316,7 +316,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-testsrc/1f802fba366e9f55e9846dae24e94ff5
+      CodeUri: s3://panyapoc-testsrc/465af180f9b667e72ad4c073db3365c6
       Environment:
         Variables:
           ESENDPOINT:
@@ -378,7 +378,7 @@ Resources:
       Environment:
         Variables:
           CUSTOM_CHROME: 'true'
-      CodeUri: s3://panyapoc-testsrc/f154d4e9a46600912b03e9d0ec895a3c
+      CodeUri: s3://panyapoc-testsrc/d849271f5abee98494fed972fea6183a
       Events:
         APIgateway:
           Type: Api
@@ -430,7 +430,7 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://panyapoc-testsrc/96d50ac8866973b89968affb44d00107
+      CodeUri: s3://panyapoc-testsrc/40ebf988819d4be89a7e8a8a15f3d414
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
@@ -511,7 +511,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-testsrc/ad3b01edfa334ca712eaf0788431342c
+      CodeUri: s3://panyapoc-testsrc/1147015deba201c8ece4dff1502cd3d4
       Environment:
         Variables:
           ESENDPOINT:
@@ -723,12 +723,12 @@ Resources:
     Properties:
       InstanceType: ml.t2.medium
       NotebookInstanceName:
-        Fn::Sub: ${ProjectName}-Notebook
+        Fn::Sub: ${ProjectName}-Personalize-Notebook
       RoleArn:
         Fn::GetAtt:
         - SageMakerIamRole
         - Arn
-      VolumeSizeInGB: 10
+      VolumeSizeInGB: 20
       DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
   PostClickEventStream:
     Type: AWS::Kinesis::Stream
@@ -821,7 +821,35 @@ Outputs:
     Value:
       Ref: WebBucket
     Description: S3 Bucket for web asset storage
+  StagingS3Bucket:
+    Value:
+      Ref: StagingS3Bucket
+    Description: S3 Bucket for Data Staging
   ProdDataEndpoint:
     Description: API Prod stage endpoint
     Value:
       Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+  RerankArn:
+    Description: Rerank_arn
+    Value:
+      Fn::GetAtt:
+      - FunctionSearchRerank
+      - Arn
+  GetRecommendationsByItemArn:
+    Description: GetRecommendationsByItem_arn
+    Value:
+      Fn::GetAtt:
+      - FunctionGetRecommendationsByItem
+      - Arn
+  GetRecommendationsArn:
+    Description: GetRecommendations_arn
+    Value:
+      Fn::GetAtt:
+      - FunctionGetRecommendations
+      - Arn
+  PostClickEventArn:
+    Description: PostClickEvent_arn
+    Value:
+      Fn::GetAtt:
+      - PostClickEventFuction
+      - Arn
