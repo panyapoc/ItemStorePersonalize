@@ -66,7 +66,7 @@ class ProductDetails extends React.Component<
               itemID: this.props.match.params.id
             }),
         PartitionKey: config.kinesis.PartitionKey, /* required */
-        StreamName: config.kinesis.PartitionKey /* required */
+        StreamName: config.kinesis.StreamName /* required */
       };
       kinesis.putRecord(params, function(err, data) {
         if (err) console.log(err, err.stack); // an error occurred

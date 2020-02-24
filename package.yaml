@@ -316,7 +316,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-testsrc/2d506b6b4bbbde8eceb6db04b7e36e5d
+      CodeUri: s3://panyapoc-testsrc/1f802fba366e9f55e9846dae24e94ff5
       Environment:
         Variables:
           ESENDPOINT:
@@ -354,7 +354,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://panyapoc-testsrc/9a91782e704b80e1ddc3bad1bafe2f9f
+      CodeUri: s3://panyapoc-testsrc/6d18b27e82aa1547b76da3d1230e45de
       Events:
         APIgateway:
           Type: Api
@@ -378,7 +378,7 @@ Resources:
       Environment:
         Variables:
           CUSTOM_CHROME: 'true'
-      CodeUri: s3://panyapoc-testsrc/a74570f737358bca9232f44740d2bcba
+      CodeUri: s3://panyapoc-testsrc/f154d4e9a46600912b03e9d0ec895a3c
       Events:
         APIgateway:
           Type: Api
@@ -403,7 +403,7 @@ Resources:
         Variables:
           TABLE_NAME:
             Fn::Sub: ${ProjectName}-Items
-      CodeUri: s3://panyapoc-testsrc/3b4970c668edfb2cad19589f24079397
+      CodeUri: s3://panyapoc-testsrc/bb1cecd876f55d60ffe7a4072604ccbe
       Events:
         APIgateway:
           Type: Api
@@ -430,13 +430,13 @@ Resources:
             Fn::Sub: ${ProjectName}-Items
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
-      CodeUri: s3://panyapoc-testsrc/0ba4623fa9ca91d6ec522ab488ae39a9
+      CodeUri: s3://panyapoc-testsrc/96d50ac8866973b89968affb44d00107
   FunctionGetRecommendations:
     Type: AWS::Serverless::Function
     Properties:
       FunctionName:
         Fn::Sub: ${ProjectName}-GetRecommendations
-      CodeUri: s3://panyapoc-testsrc/5def98a1c8a7133d9c7f151ec1d04e85
+      CodeUri: s3://panyapoc-testsrc/f0083b1d0a35d9092ca2091dc70b1a8f
       Description: Get the product recommendations by user
       Role:
         Fn::GetAtt:
@@ -467,7 +467,7 @@ Resources:
     Properties:
       FunctionName:
         Fn::Sub: ${ProjectName}-GetRecommendationsByItem
-      CodeUri: s3://panyapoc-testsrc/8872cc7347f852b91870805984bd66a6
+      CodeUri: s3://panyapoc-testsrc/3683824da49882d28a2ad67f6a1a2484
       Description: Get the product recommendations by item
       Role:
         Fn::GetAtt:
@@ -511,7 +511,7 @@ Resources:
           - DefaultSecurityGroup
         SubnetIds:
         - Ref: ItemStoreSubnet1
-      CodeUri: s3://panyapoc-testsrc/783339d48e8e6ed0570242b3be34ec0b
+      CodeUri: s3://panyapoc-testsrc/ad3b01edfa334ca712eaf0788431342c
       Environment:
         Variables:
           ESENDPOINT:
@@ -764,6 +764,58 @@ Resources:
               - PostClickEventStream
               - Arn
             StartingPosition: TRIM_HORIZON
+  UserEventIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: true
+      IdentityPoolName:
+        Fn::Sub: ${ProjectName}-UserEventIdentityPool
+  UserEventIdentityPoolAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId:
+        Ref: UserEventIdentityPool
+      Roles:
+        authenticated:
+          Fn::GetAtt:
+          - UserEventAuthRole
+          - Arn
+        unauthenticated:
+          Fn::GetAtt:
+          - UserEventAuthRole
+          - Arn
+  UserEventAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${ProjectName}-UserEventRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Federated:
+            - cognito-identity.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: KinesisStreamPut
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action:
+            - kinesis:PutRecord
+            Resource:
+            - Fn::GetAtt:
+              - PostClickEventStream
+              - Arn
+            - Fn::Join:
+              - ''
+              - - Fn::GetAtt:
+                  - PostClickEventStream
+                  - Arn
+                - /*
 Outputs:
   WebBucketName:
     Value:

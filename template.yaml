@@ -636,6 +636,42 @@ Resources:
           Properties:
             Stream: !GetAtt PostClickEventStream.Arn
             StartingPosition: TRIM_HORIZON
+  UserEventIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: True
+      IdentityPoolName: !Sub '${ProjectName}-UserEventIdentityPool'
+  UserEventIdentityPoolAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref UserEventIdentityPool
+      Roles:
+        authenticated: !GetAtt UserEventAuthRole.Arn
+        unauthenticated: !GetAtt UserEventAuthRole.Arn
+  UserEventAuthRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub '${ProjectName}-UserEventRole'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+                - 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: KinesisStreamPut
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'kinesis:PutRecord'
+                Resource:
+                  - !GetAtt PostClickEventStream.Arn
+                  - !Join ['', [!GetAtt PostClickEventStream.Arn, '/*']]
 
 Outputs:
   WebBucketName:
