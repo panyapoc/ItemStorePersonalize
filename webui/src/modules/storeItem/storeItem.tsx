@@ -35,18 +35,18 @@ class ProductRow extends React.Component<ProductRowProps, ProductRowState> {
 
   render() {
     return (
-      <a
-        href={`/product/${this.props.productId}?uid=${this.props.uid}`}
-      >
-        <span className="recommend">
-          <div>
+      <a href={`/product/${this.props.productId}?uid=${this.props.uid}`}>
+        <div className='imgbox'>
             <img
               alt={htmlEntities.decode(this.props.title)}
               src={this.props.imUrl}
+              max-width='33%'
+              max-height='350px'
+              width='auto'
+              height='auto'
             ></img>
           </div>
-          <div>{htmlEntities.decode(this.props.title)}</div>
-        </span>
+          <span>{htmlEntities.decode(this.props.title)}</span>
       </a>
     );
   }

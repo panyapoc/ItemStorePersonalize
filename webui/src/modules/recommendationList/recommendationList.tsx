@@ -15,6 +15,7 @@ import {
   Link,
   RouteComponentProps
 } from "react-router-dom";
+import { Col } from "react-bootstrap";
 
 const RecommendationMode = {
   Normal: "Normal",
@@ -136,41 +137,59 @@ export class RecommendationList extends React.Component<
   }
 
   createTable = () => {
-    let table = [];
     let listItems = this.state.items;
-    const maxCols = this.props.mode == RecommendationMode.Normal ? 3 : 10;
-    let currentCol = 0;
-    let children = [];
+    let userid = this.props.userId;
+    let productcat: JSX.Element[] = [];
 
-    if (listItems != null) {
-      for (let i = 0; i < listItems.length; i++) {
-        let product = listItems[i];
-        children.push(
-          <td key={product.asin}>
-            {" "}
-            <ProductRow
-              uid={this.props.userId}
-              key={product.asin}
-              title={product.title}
-              imUrl={product.imUrl}
-              productId={product.asin}
-            ></ProductRow>
-          </td>
-        );
-        ++currentCol;
-        if (currentCol >= maxCols) {
-          table.push(<tr key={uid(product)}>{children}</tr>);
-          children = [];
-          currentCol = 0;
-        }
-      }
-      if (children.length > 0) {
-        table.push(<tr key={uid(Date.now())}>{children}</tr>);
-        children = [];
-      }
+    try {
+      listItems.forEach(function(item, index) {
+        productcat.push(
+            <Col xs={6} md={4} className="product">
+              <ProductRow
+                uid={userid}
+                key={item.asin}
+                title={item.title}
+                imUrl={item.imUrl}
+                productId={item.asin}
+              ></ProductRow>
+            </Col>
+          );
+      })
+    }
+    catch(e){
+      console.log(e)
     }
 
-    return table;
+
+    // if (listItems != null) {
+    //   for (let i = 0; i < listItems.length; i++) {
+    //     let product = listItems[i];
+    //     children.push(
+    //       <td key={product.asin}>
+    //         {" "}
+    //         <ProductRow
+    //           uid={this.props.userId}
+    //           key={product.asin}
+    //           title={product.title}
+    //           imUrl={product.imUrl}
+    //           productId={product.asin}
+    //         ></ProductRow>
+    //       </td>
+    //     );
+    //     ++currentCol;
+    //     if (currentCol >= maxCols) {
+    //       table.push(<tr key={uid(product)}>{children}</tr>);
+    //       children = [];
+    //       currentCol = 0;
+    //     }
+    //   }
+    //   if (children.length > 0) {
+    //     table.push(<tr key={uid(Date.now())}>{children}</tr>);
+    //     children = [];
+    //   }
+    // }
+
+    return productcat;
   };
 
   render() {
@@ -184,9 +203,7 @@ export class RecommendationList extends React.Component<
 
     return (
       <div className={currentClassName}>
-        <table className={currentClassName}>
-          <tbody>{this.createTable()}</tbody>
-        </table>
+        {this.createTable()}
       </div>
     );
   }

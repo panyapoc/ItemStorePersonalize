@@ -7,6 +7,17 @@
   color: #f69827 !important;
 }
 
+.product{
+  height: 350px;
+  max-height: 350px !important;
+  margin-bottom: 10px;
+}
+
+.imgbox{
+  height: 350px;
+  line-height: 350px;
+}
+
 .App .white {
   color: #fff;
 }
