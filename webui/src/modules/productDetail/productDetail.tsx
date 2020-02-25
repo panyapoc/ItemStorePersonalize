@@ -13,8 +13,9 @@ import {
   RouteComponentProps
 } from "react-router-dom";
 import { useParams, withRouter } from "react-router";
-
 import { Html5Entities } from "html-entities";
+
+const htmlEntities = new Html5Entities();
 
 AWS.config.update({
   region: config.region,
@@ -22,10 +23,7 @@ AWS.config.update({
     IdentityPoolId: config.cognito.AnonymousPoolId
   })
 });
-
 var kinesis = new AWS.Kinesis();
-
-const htmlEntities = new Html5Entities();
 
 type ProductDetailsProp = {
   id: string;
@@ -39,15 +37,9 @@ interface ProductDetailsState {
   showAMZNLink: boolean;
 }
 
-class ProductDetails extends React.Component<
-  RouteComponentProps<ProductDetailsProp> & ProductDetailsProp,
-  ProductDetailsState
-> {
-  constructor(
-    props: RouteComponentProps<ProductDetailsProp> & ProductDetailsProp
-  ) {
+class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsProp> & ProductDetailsProp,ProductDetailsState> {
+  constructor(props: RouteComponentProps<ProductDetailsProp> & ProductDetailsProp) {
     super(props);
-
     this.state = {
       isLoading: true,
       product: undefined,
@@ -72,17 +64,6 @@ class ProductDetails extends React.Component<
         if (err) console.log(err, err.stack); // an error occurred
         else     console.log(data);           // successful response
       });
-      // fetch(config.api.ClickEventUrl, {
-      //   method: "POST",
-      //   headers: {
-      //     Accept: "application/json",
-      //     "Content-Type": "application/json"
-      //   },
-      //   body: JSON.stringify({
-      //     userID: values.uid,
-      //     itemID: this.props.match.params.id
-      //   })
-      // });
     } catch (e) {
       console.log(e);
     }
@@ -106,10 +87,7 @@ class ProductDetails extends React.Component<
     }
 
     try {
-      let descriptionUrl =
-        config.api.GetDescriptionForProduct +
-        "?asin=" +
-        this.props.match.params.id;
+      let descriptionUrl = config.api.GetDescriptionForProduct + "?asin=" +this.props.match.params.id;
 
       fetch(descriptionUrl)
         .then(response => response.json())
