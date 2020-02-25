@@ -2,11 +2,7 @@ import React from "react";
 import "./searchBar.css";
 import { Redirect } from "react-router";
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
   withRouter,
-  Link,
   RouteComponentProps
 } from "react-router-dom";
 

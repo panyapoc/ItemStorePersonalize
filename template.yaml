@@ -141,9 +141,7 @@ Resources:
       KeySchema:
         - AttributeName: asin
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+      BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
 
@@ -339,7 +337,7 @@ Resources:
       Handler: uploadItemscsv.handler
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
-      Timeout: 120
+      Timeout: 900
       MemorySize: 512
       Environment:
         Variables:
@@ -601,20 +599,17 @@ Resources:
     Type: "AWS::SageMaker::NotebookInstance"
     Properties:
       InstanceType: "ml.t2.medium"
-      NotebookInstanceName: !Sub '${ProjectName}-Notebook'
+      NotebookInstanceName: !Sub '${ProjectName}-Personalize-Notebook'
       RoleArn: !GetAtt SageMakerIamRole.Arn
-      VolumeSizeInGB: 10
+      VolumeSizeInGB: 20
       DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
 
-
-# TODO: PostClickEvent
   PostClickEventStream:
     Type: AWS::Kinesis::Stream
     Properties:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
-# TODO: PostClickEventFirehose -> Move to using SDK on clientside
   PostClickEventFuction:
     Type: 'AWS::Serverless::Function'
     Properties:
@@ -640,7 +635,8 @@ Resources:
     Type: AWS::Cognito::IdentityPool
     Properties:
       AllowUnauthenticatedIdentities: True
-      IdentityPoolName: !Sub '${ProjectName}-UserEventIdentityPool'
+      # number letter underscore space only
+      IdentityPoolName: !Sub '${ProjectName}_UserEventIdentityPool'
   UserEventIdentityPoolAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
     Properties:
@@ -660,7 +656,7 @@ Resources:
               Federated:
                 - 'cognito-identity.amazonaws.com'
             Action:
-              - 'sts:AssumeRole'
+              - 'sts:AssumeRoleWithWebIdentity'
       Policies:
         - PolicyName: KinesisStreamPut
           PolicyDocument:
@@ -672,13 +668,42 @@ Resources:
                 Resource:
                   - !GetAtt PostClickEventStream.Arn
                   - !Join ['', [!GetAtt PostClickEventStream.Arn, '/*']]
+  InitItemTable:
+    DependsOn:
+      - TableItems
+      - UpdateSearchCluster
+      - ElasticsearchDomain
+    Type: AWS::CloudFormation::CustomResource
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt FunctionUploadItems.Arn
+      FunctionName: !Ref FunctionUploadItems
 
 Outputs:
+  ProdDataEndpoint:
+    Description: "API Prod stage endpoint"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   WebBucketName:
     Value: !Ref WebBucket
     Description: S3 Bucket for web asset storage
-  ProdDataEndpoint:
-      Description: "API Prod stage endpoint"
-      Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
-
-# TODO: OutPut Lambda ARN to be update with the campaingn
+  StagingS3Bucket:
+    Value: !Ref StagingS3Bucket
+    Description: S3 Bucket for Data Staging
+  RerankArn:
+    Description: "Rerank_arn"
+    Value: !GetAtt FunctionSearchRerank.Arn
+  GetRecommendationsByItemArn:
+    Description: "GetRecommendationsByItem_arn"
+    Value: !GetAtt FunctionGetRecommendationsByItem.Arn
+  GetRecommendationsArn:
+    Description: "GetRecommendations_arn"
+    Value: !GetAtt FunctionGetRecommendations.Arn
+  PostClickEventArn:
+    Description: "PostClickEvent_arn"
+    Value: !GetAtt PostClickEventFuction.Arn
+  WebUIStreamName:
+    Description: "WebUI Config kinesis.StreamName"
+    Value: !Ref PostClickEventStream
+  WebUIAnonymousPoolId:
+    Description: "WebUI Config cognito.AnonymousPoolId"
+    Value: !Ref UserEventIdentityPool

@@ -66,21 +66,21 @@ export default class Home extends Component<HomeProps, HomeState> {
           <div className="col-md-4 ad-padding">
             <div className="container-category no-padding">
               {/* <LinkContainer to="/past">
-                <img src={yourpastorders} alt="Past orders"></img> 
+                <img src={yourpastorders} alt="Past orders"></img>
               </LinkContainer> */}
             </div>
           </div>
           <div className="col-md-4 ad-padding">
             <div className="container-category no-padding">
               {/* <LinkContainer to="/cart">
-                <img src={yourshoppingcart} alt="Shopping cart"></img> 
+                <img src={yourshoppingcart} alt="Shopping cart"></img>
               </LinkContainer> */}
             </div>
           </div>
           <div className="col-md-4 ad-padding">
             <div className="container-category no-padding">
               {/* <LinkContainer to="/best">
-                <img src={bestSellers} alt="Best sellers"></img> 
+                <img src={bestSellers} alt="Best sellers"></img>
               </LinkContainer> */}
             </div>
           </div>

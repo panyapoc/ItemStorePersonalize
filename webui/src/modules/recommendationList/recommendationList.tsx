@@ -1,20 +1,14 @@
 import React from "react";
-import PropTypes from "prop-types";
 import ProductRow from "../storeItem/storeItem";
 import { Product } from "../storeItem/storeItem";
 import config from "../../config";
-import { Table } from "@material-ui/core";
-import { uid } from "react-uid";
 import "./recommendationList.css";
 
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
   withRouter,
-  Link,
   RouteComponentProps
 } from "react-router-dom";
+import { Col } from "react-bootstrap";
 
 const RecommendationMode = {
   Normal: "Normal",
@@ -59,7 +53,7 @@ export class RecommendationList extends React.Component<
 
     let getUrl = config.api.GetListUrl;
 
-    if (this.props.mode == RecommendationMode.Normal) {
+    if (this.props.mode === RecommendationMode.Normal) {
       if (
         this.props.match.params.searchid &&
         this.props.match.params.searchid.length > 0
@@ -71,12 +65,12 @@ export class RecommendationList extends React.Component<
         queryString += "q=" + this.props.match.params.searchid;
 
         if (this.props.userId) {
-          if (queryString != "") queryString += "&";
+          if (queryString !== "") queryString += "&";
 
           queryString += "u=" + this.props.userId;
         }
 
-        if (queryString != "") getUrl = getUrl + queryString;
+        if (queryString !== "") getUrl = getUrl + queryString;
       } else {
         if (this.props.userId != null) getUrl += this.props.userId;
       }
@@ -136,59 +130,106 @@ export class RecommendationList extends React.Component<
   }
 
   createTable = () => {
-    let table = [];
     let listItems = this.state.items;
-    const maxCols = this.props.mode == RecommendationMode.Normal ? 3 : 10;
-    let currentCol = 0;
-    let children = [];
+    let userid = this.props.userId;
+    var xs: number | undefined,md: number | undefined
+    if (this.props.mode === RecommendationMode.Normal){
+      xs = 6;
+      md = 4;
+    }
+    else {
+      xs = 4;
+      md = 3;
+    }
+    let productcat: JSX.Element[] = [];
 
-    if (listItems != null) {
-      for (let i = 0; i < listItems.length; i++) {
-        let product = listItems[i];
-        children.push(
-          <td key={product.asin}>
-            {" "}
-            <ProductRow
-              uid={this.props.userId}
-              key={product.asin}
-              title={product.title}
-              imUrl={product.imUrl}
-              productId={product.asin}
-            ></ProductRow>
-          </td>
-        );
-        ++currentCol;
-        if (currentCol >= maxCols) {
-          table.push(<tr key={uid(product)}>{children}</tr>);
-          children = [];
-          currentCol = 0;
-        }
-      }
-      if (children.length > 0) {
-        table.push(<tr key={uid(Date.now())}>{children}</tr>);
-        children = [];
-      }
+    try {
+      listItems.forEach(function(item, index) {
+        productcat.push(
+            <Col xs={xs} md={md} className="product" key={index}>
+              <ProductRow
+                uid={userid}
+                key={item.asin}
+                title={item.title}
+                imUrl={item.imUrl}
+                productId={item.asin}
+              ></ProductRow>
+            </Col>
+          );
+      })
+    }
+    catch(e){
+      console.log(e)
     }
 
-    return table;
+// Tavle version
+    // if (listItems != null) {
+    //   for (let i = 0; i < listItems.length; i++) {
+    //     let product = listItems[i];
+    //     children.push(
+    //       <td key={product.asin}>
+    //         {" "}
+    //         <ProductRow
+    //           uid={this.props.userId}
+    //           key={product.asin}
+    //           title={product.title}
+    //           imUrl={product.imUrl}
+    //           productId={product.asin}
+    //         ></ProductRow>
+    //       </td>
+    //     );
+    //     ++currentCol;
+    //     if (currentCol >= maxCols) {
+    //       table.push(<tr key={uid(product)}>{children}</tr>);
+    //       children = [];
+    //       currentCol = 0;
+    //     }
+    //   }
+    //   if (children.length > 0) {
+    //     table.push(<tr key={uid(Date.now())}>{children}</tr>);
+    //     children = [];
+    //   }
+    // }
+
+    return productcat;
   };
 
   render() {
     let currentClassName;
+    let productlist;
 
-    if (this.props.mode == RecommendationMode.Normal)
+    if (this.props.mode === RecommendationMode.Normal){
       currentClassName = "recommend";
-    else if (this.props.mode == RecommendationMode.SimilarItems)
+      return (
+        <div className={currentClassName}>
+          {this.createTable()}
+        </div>
+      );
+    }
+    else if (this.props.mode === RecommendationMode.SimilarItems) {
       currentClassName = "similar";
-    else currentClassName = "itemsForUser";
-
-    return (
-      <div className={currentClassName}>
-        <table className={currentClassName}>
-          <tbody>{this.createTable()}</tbody>
-        </table>
-      </div>
-    );
+      return (
+        <div className={currentClassName}>
+            <div className="container testimonial-group">
+              <div className="row text-center">
+                {this.createTable()}
+            </div>
+          </div>
+        </div>
+      );
+    }
+    else {
+      currentClassName = "itemsForUser";
+      return (
+        <div className={currentClassName}>
+            <div className="container testimonial-group">
+              <div className="row text-center">
+                {this.createTable()}
+            </div>
+          </div>
+        </div>
+      );
+    }
   }
 }
 

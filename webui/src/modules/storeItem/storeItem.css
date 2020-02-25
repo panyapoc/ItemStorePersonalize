@@ -1,3 +1,7 @@
 span.recommend {
   padding: 10px;
 }
+
+.prod-img{
+  max-height: 300px;
+}

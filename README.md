@@ -2,7 +2,7 @@
 
 ## Folder Structure
 
-```
+``` Tree
 ├── Personalize                                    [DataPipeline Notebook]
 │   ├── 1.Building_Campaign_HRNN.ipynb
 │   ├── 2.Building_Campaign_P-rank.ipynb
@@ -37,9 +37,10 @@
 
 ## Deployment Prerequisites
 
-In order to deploy this stack, you'll need: 
+In order to deploy this stack, you'll need:
 
-### Installed on your machine:
+### Installed on your machine
+
 1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) pointed to your target account and region with `aws configure`
 1. [AWS SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
 1. [Docker Desktop](https://www.docker.com/products/docker-desktop)
@@ -47,12 +48,13 @@ In order to deploy this stack, you'll need:
     * [NodeJS v12](https://nodejs.org/en/download/) (You may wish to install Node via the **Node Version Manager** for [Mac/Linux](https://github.com/nvm-sh/nvm#installing-and-updating) or [Windows](https://github.com/coreybutler/nvm-windows#node-version-manager-nvm-for-windows)).
     * If you see Web UI build errors relating to an incompatible version of [Python](https://www.python.org/), you may need to install additional versions of Python via [pyenv](https://github.com/pyenv/pyenv#simple-python-version-management-pyenv) (recommended), [conda](https://docs.conda.io/en/latest/), or any other Python environment management tool of your choice.
 
-### On the AWS cloud:
+### On the AWS cloud
+
 1. Access (and [access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)) to an AWS Account, with sufficient permissions to create all the required resources.
 2. An S3 Bucket to package the source code to, in the same AWS region as you expect to deploy.
 3. Created a service linked role for ES, as below in AWS CLI:
 
-```
+``` bash
 aws iam create-service-linked-role \
 --aws-service-name es.amazonaws.com \
 --description "My service-linked role to Amazon ElasticSearch"
@@ -63,7 +65,8 @@ aws iam create-service-linked-role \
 ### Step 1: Build and deploy the stack
 
 Run the deployment script, with parameters as follows:
-```bin/bash
+
+``` bash
 sh deploy.sh <s3bucketname> <stackname> <AWSprofile (optional)>
 ```
 
@@ -88,13 +91,21 @@ This may take up to and over an hour to complete, mostly on the deployment of in
     * GetRecommendations
     * GetRecommendationsByItem
 3. In the environment section and replace the ARN with the one create from jupyter notebook.
+4. Goto ``/webui``, Open config.tsx file and edit the following varible
+    * Apitree
+    * AnonymousPoolId
+    * StreamName
 
 # API doc
+
+API Document
+
 ## /items/{id}
+
 Get item by item id (asin)
 
 ``` HTTP GET
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/items/B00004NKIQ
+https://${Apitree}/withtag/items/B00004NKIQ
 ```
 
 ``` Respose Example
@@ -107,10 +118,11 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/items/B00004NKIQ
 ```
 
 ## /recommendations
+
 Get item recommendations anonymously
 
 ``` HTTP GET
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendations/
+https://${Apitree}/withtag/recommendations/
 ```
 
 ``` Respose Example
@@ -128,10 +140,11 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendations/
 ```
 
 ## /recommendations/{userId}
+
 Get personalize recommendations for userId
 
 ``` HTTP GET
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendations/A1L5P841VIO02V
+https://${Apitree}/withtag/recommendations/A1L5P841VIO02V
 ```
 
 ``` Respose Example
@@ -149,10 +162,11 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendations/A
 ```
 
 ## /recommendationsitem/{itemId}
+
 Get personalize recommendations base on item similarity
 
 ``` HTTP GET
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendationsitem/2094869245
+https://${Apitree}/withtag/recommendationsitem/2094869245
 ```
 
 ``` Respose Example
@@ -170,11 +184,12 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/recommendationsit
 ```
 
 ## /search?q={query}
+
 Searching
 ⚠️ {query} cannot be null
 
 ``` HTTP GET
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun
+https://${Apitree}/withtag/search?q=Gun
 ```
 
 ``` Respose Example
@@ -192,11 +207,12 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun
 ```
 
 ## /search?q={query}&u={userid}
+
 Personalize Search
 ⚠️ {query} cannot be null
 
 ``` HTTP GET
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun&u=A1L5P841VIO02V
+https://${Apitree}/withtag/search?q=Gun&u=A1L5P841VIO02V
 ```
 
 ``` Respose Example
@@ -211,24 +227,4 @@ https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/search?q=Gun&u=A1
     "imUrl": "http://ecx.images-amazon.com/images/I/41H2beGGbZL._SY300_.jpg",
     "title": "Tipton Gun Vise"
 }, ..]
-```
-
-## /clickevent
-Submit Click event to kinesis for realtime recommendation
-
-``` HTTP POST
-https://jpn8qvh7ci.execute-api.us-east-1.amazonaws.com/withtag/clickevent
-
-{
-    "userID" : "AB2W04NI4OEAD",
-    "itemID" : "A148SVSWKTJKU6",
-    "sessionID" : "AB2W04NI4OEAD"
-}
-```
-
-``` Respose Example
-{
-  "SequenceNumber": "49602401777761666870538776314728212113850425834150559746",
-  "ShardId": "shardId-000000000000"
-}
 ```
