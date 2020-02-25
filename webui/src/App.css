@@ -2,12 +2,9 @@
   margin-top: 15px;
 }
 
-.App .navbar-brand {
-  font-weight: bold;
-}
-
-.App .orange {
-  color: #f69827;
+.navbar-brand {
+  height: auto;
+  color: #f69827 !important;
 }
 
 .App .white {
@@ -27,38 +24,4 @@
 
 .line-height-24 {
   line-height: 24px;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:active {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:focus {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:focus-within {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:visited {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
 }

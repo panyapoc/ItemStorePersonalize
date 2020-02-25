@@ -36,8 +36,6 @@ class ProductRow extends React.Component<ProductRowProps, ProductRowState> {
   render() {
     return (
       <a
-        target="_blank"
-        rel="noopener noreferrer"
         href={`/product/${this.props.productId}?uid=${this.props.uid}`}
       >
         <span className="recommend">
