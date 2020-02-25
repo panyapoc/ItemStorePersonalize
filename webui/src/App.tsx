@@ -79,11 +79,17 @@ class App extends React.Component<RouteComponentProps<AppProps>, AppState> {
 
   renderSelectOptions(eventKey : any) {
     console.log('eventKey',eventKey)
-    this.setState({
-      userSelectedName: `${userList[eventKey].firstName} ${userList[eventKey].lastName}`
-    });
-    this.setState({ selectedUser: userList[eventKey]});
-    localStorage.setItem('user', JSON.stringify(userList[eventKey]));
+    if(eventKey === 'anonymous'){
+      this.setState({ userSelectedName: 'anonymous'});
+      this.setState({ selectedUser: undefined});
+      localStorage.removeItem('user');
+    }else{
+      this.setState({
+        userSelectedName: `${userList[eventKey].firstName} ${userList[eventKey].lastName}`
+      });
+      this.setState({ selectedUser: userList[eventKey]});
+      localStorage.setItem('user', JSON.stringify(userList[eventKey]));
+    }
   }
 
   render() {
@@ -115,6 +121,7 @@ class App extends React.Component<RouteComponentProps<AppProps>, AppState> {
                 {userList.map((item, key) =>
                   <MenuItem id={`user${key}`} eventKey={key}>{item.firstName +' '+item.lastName }</MenuItem>
                 )}
+                <MenuItem id='anonymous' eventKey='anonymous'>anonymous</MenuItem>
               </NavDropdown>
             </Nav>
           </Navbar.Collapse>
