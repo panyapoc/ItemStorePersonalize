@@ -635,7 +635,8 @@ Resources:
     Type: AWS::Cognito::IdentityPool
     Properties:
       AllowUnauthenticatedIdentities: True
-      IdentityPoolName: !Sub '${ProjectName}-UserEventIdentityPool'
+      # number letter underscore space only
+      IdentityPoolName: !Sub '${ProjectName}_UserEventIdentityPool'
   UserEventIdentityPoolAttachment:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
     Properties:
@@ -655,7 +656,7 @@ Resources:
               Federated:
                 - 'cognito-identity.amazonaws.com'
             Action:
-              - 'sts:AssumeRole'
+              - 'sts:AssumeRoleWithWebIdentity'
       Policies:
         - PolicyName: KinesisStreamPut
           PolicyDocument:
