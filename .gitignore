@@ -2,6 +2,7 @@ venv/
 .aws-sam/
 *.zip
 package.yaml
+config.tsx
 
 # Temporary files:
 *.tmp.*
@@ -367,3 +368,4 @@ MigrationBackup/
 
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
+webui/src/config.tsx

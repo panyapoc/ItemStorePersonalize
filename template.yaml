@@ -604,15 +604,12 @@ Resources:
       VolumeSizeInGB: 20
       DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
 
-
-# TODO: PostClickEvent
   PostClickEventStream:
     Type: AWS::Kinesis::Stream
     Properties:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
-# TODO: PostClickEventFirehose -> Move to using SDK on clientside
   PostClickEventFuction:
     Type: 'AWS::Serverless::Function'
     Properties:
