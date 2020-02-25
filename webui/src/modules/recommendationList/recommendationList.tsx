@@ -144,7 +144,7 @@ export class RecommendationList extends React.Component<
     try {
       listItems.forEach(function(item, index) {
         productcat.push(
-            <Col xs={6} md={4} className="product">
+            <Col xs={6} md={4} className="product" key={index}>
               <ProductRow
                 uid={userid}
                 key={item.asin}
