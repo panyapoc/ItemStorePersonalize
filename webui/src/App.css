@@ -17,6 +17,10 @@
   background: none !important;
 } */
 
+.itemsForUser div,.similar div {
+  padding: 0 0 0 0;
+}
+
 .userstate{
   padding: 15px;
   margin-right: 20px;
@@ -43,4 +47,19 @@
 
 .shopping-icon-container .count {
   margin: 0 0 0 4px;
+}
+
+
+.testimonial-group > .row {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.testimonial-group > .row > .col-xs-4 {
+  display: inline-block;
+  float: none;
+}
+
+.itemTitle{
+  white-space: initial;
+  width: 290px;
 }

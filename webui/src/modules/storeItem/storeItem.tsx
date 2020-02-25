@@ -46,8 +46,8 @@ class ProductRow extends React.Component<ProductRowProps, ProductRowState> {
               height='auto'
               className='prod-img'
             ></img>
-          </div>
-          <span>{htmlEntities.decode(this.props.title)}</span>
+          </div><div className='itemTitle'>{htmlEntities.decode(this.props.title)}</div>
+
       </a>
     );
   }

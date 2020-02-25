@@ -128,7 +128,6 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
             </div>
           );
         }
-
         let amazonUrl = "https://www.amazon.com/dp/" + item.asin;
 
         const descData = this.state.description;
@@ -173,11 +172,11 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
                 <h3>Similar Items</h3>
               </div>
               <div>
-                <RecommendationList
+                  <RecommendationList
                   mode="SimilarItems"
                   userId={uid?.toString()}
                   productId={item.asin}
-                ></RecommendationList>
+                  ></RecommendationList>
               </div>
             </div>
             {recommendedForUser}

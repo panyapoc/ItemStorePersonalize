@@ -135,6 +135,10 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
                 </RecommendationList>
               </Route>
               <Route path="/product/:id">
+                <SearchBar
+                  userId={this.state.selectedUser?.id}
+                  searchid={undefined}>
+                </SearchBar>
                 <ProductDetail
                   uid={this.state.selectedUser?.id}
                   id={"2"}
@@ -152,7 +156,6 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
               </Route>
               <Route path="*" component={notFound} />
             </Switch>
-
         </Router>
       </div>);
   }
