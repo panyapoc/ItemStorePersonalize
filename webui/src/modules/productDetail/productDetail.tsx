@@ -51,7 +51,8 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
       var params = {
         Data: JSON.stringify({
               userID: values.uid,
-              itemID: this.props.match.params.id
+              itemID: this.props.match.params.id,
+              sessionID : localStorage.getItem('SID')
             }),
         PartitionKey: config.kinesis.PartitionKey, /* required */
         StreamName: config.kinesis.StreamName /* required */
