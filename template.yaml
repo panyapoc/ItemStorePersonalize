@@ -141,9 +141,7 @@ Resources:
       KeySchema:
         - AttributeName: asin
           KeyType: HASH
-      ProvisionedThroughput:
-        ReadCapacityUnits: 1
-        WriteCapacityUnits: 1
+      BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
 
@@ -672,6 +670,16 @@ Resources:
                 Resource:
                   - !GetAtt PostClickEventStream.Arn
                   - !Join ['', [!GetAtt PostClickEventStream.Arn, '/*']]
+  InitItemTable:
+    DependsOn:
+      - TableItems
+      - UpdateSearchCluster
+      - ElasticsearchDomain
+    Type: AWS::CloudFormation::CustomResource
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt FunctionUploadItems.Arn
+      FunctionName: !Ref FunctionUploadItems
 
 Outputs:
   WebBucketName:
