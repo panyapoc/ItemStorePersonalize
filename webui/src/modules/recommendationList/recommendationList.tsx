@@ -1,18 +1,11 @@
 import React from "react";
-import PropTypes from "prop-types";
 import ProductRow from "../storeItem/storeItem";
 import { Product } from "../storeItem/storeItem";
 import config from "../../config";
-import { Table } from "@material-ui/core";
-import { uid } from "react-uid";
 import "./recommendationList.css";
 
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
   withRouter,
-  Link,
   RouteComponentProps
 } from "react-router-dom";
 import { Col } from "react-bootstrap";
@@ -60,7 +53,7 @@ export class RecommendationList extends React.Component<
 
     let getUrl = config.api.GetListUrl;
 
-    if (this.props.mode == RecommendationMode.Normal) {
+    if (this.props.mode === RecommendationMode.Normal) {
       if (
         this.props.match.params.searchid &&
         this.props.match.params.searchid.length > 0
@@ -72,12 +65,12 @@ export class RecommendationList extends React.Component<
         queryString += "q=" + this.props.match.params.searchid;
 
         if (this.props.userId) {
-          if (queryString != "") queryString += "&";
+          if (queryString !== "") queryString += "&";
 
           queryString += "u=" + this.props.userId;
         }
 
-        if (queryString != "") getUrl = getUrl + queryString;
+        if (queryString !== "") getUrl = getUrl + queryString;
       } else {
         if (this.props.userId != null) getUrl += this.props.userId;
       }
@@ -195,9 +188,9 @@ export class RecommendationList extends React.Component<
   render() {
     let currentClassName;
 
-    if (this.props.mode == RecommendationMode.Normal)
+    if (this.props.mode === RecommendationMode.Normal)
       currentClassName = "recommend";
-    else if (this.props.mode == RecommendationMode.SimilarItems)
+    else if (this.props.mode === RecommendationMode.SimilarItems)
       currentClassName = "similar";
     else currentClassName = "itemsForUser";
 

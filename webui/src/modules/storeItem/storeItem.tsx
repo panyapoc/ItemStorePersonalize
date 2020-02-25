@@ -44,6 +44,7 @@ class ProductRow extends React.Component<ProductRowProps, ProductRowState> {
               max-height='350px'
               width='auto'
               height='auto'
+              className='prod-img'
             ></img>
           </div>
           <span>{htmlEntities.decode(this.props.title)}</span>

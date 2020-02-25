@@ -6,13 +6,9 @@ import "./productDetail.css";
 import queryString from "query-string";
 import RecommendationList from "../recommendationList/recommendationList";
 import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Link,
   RouteComponentProps
 } from "react-router-dom";
-import { useParams, withRouter } from "react-router";
+import { withRouter } from "react-router";
 import { Html5Entities } from "html-entities";
 
 const htmlEntities = new Html5Entities();
@@ -115,9 +111,9 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
       const values = queryString.parse(this.props.location.search);
       const uid = values.uid;
       let item = this.state.product;
-      if (item != undefined) {
+      if (item !== undefined) {
         let recommendedForUser;
-        if (uid != null) {
+        if (uid !== null) {
           recommendedForUser = (
             <div className="itemsForUser">
               <div>
@@ -142,7 +138,7 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
           <tr>
             <td></td>
             <td>
-              <a target="_blank" href={amazonUrl}>
+              <a target="_blank" href={amazonUrl} rel="noopener noreferrer">
                 Buy it on Amazon.com
               </a>
             </td>
