@@ -703,3 +703,9 @@ Outputs:
   PostClickEventArn:
     Description: "PostClickEvent_arn"
     Value: !GetAtt PostClickEventFuction.Arn
+  WebUIStreamName:
+    Description: "WebUI Config kinesis.StreamName"
+    Value: !Ref PostClickEventStream
+  WebUIAnonymousPoolId:
+    Description: "WebUI Config cognito.AnonymousPoolId"
+    Value: !Ref UserEventIdentityPool
