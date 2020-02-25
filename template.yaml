@@ -337,7 +337,7 @@ Resources:
       Handler: uploadItemscsv.handler
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
-      Timeout: 120
+      Timeout: 900
       MemorySize: 512
       Environment:
         Variables:
