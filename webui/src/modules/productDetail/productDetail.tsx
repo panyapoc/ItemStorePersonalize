@@ -60,6 +60,7 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
         PartitionKey: config.kinesis.PartitionKey, /* required */
         StreamName: config.kinesis.StreamName /* required */
       };
+      console.table(params)
       kinesis.putRecord(params, function(err, data) {
         if (err) console.log(err, err.stack); // an error occurred
         else     console.log(data);           // successful response
