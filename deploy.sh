@@ -75,6 +75,7 @@ sam deploy \
     --parameter-overrides BucketName=$SRCS3 ProjectName=$STACKNAME
         # --disable-rollback
 
+#TODO: edit webui/src/config.tsx to point to the same API
 
 echo "Getting web bucket name from stack output..."
 WEBBUCKETNAME=`aws cloudformation describe-stacks --stack-name $STACKNAME \

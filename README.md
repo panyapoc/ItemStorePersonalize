@@ -91,7 +91,7 @@ This may take up to and over an hour to complete, mostly on the deployment of in
     * GetRecommendations
     * GetRecommendationsByItem
 3. In the environment section and replace the ARN with the one create from jupyter notebook.
-4. Goto ``/webui``, Open config.tsx file and edit the following varible
+4. Goto ``/webui/src/``, Open [confix.tsx](/webui/src/index.tsx) file and edit the following varible. These varible can be found in cloudformation output.
     * Apitree
     * AnonymousPoolId
     * StreamName
