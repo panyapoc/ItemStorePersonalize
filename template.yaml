@@ -682,15 +682,15 @@ Resources:
       FunctionName: !Ref FunctionUploadItems
 
 Outputs:
+  ProdDataEndpoint:
+    Description: "API Prod stage endpoint"
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   WebBucketName:
     Value: !Ref WebBucket
     Description: S3 Bucket for web asset storage
   StagingS3Bucket:
     Value: !Ref StagingS3Bucket
     Description: S3 Bucket for Data Staging
-  ProdDataEndpoint:
-    Description: "API Prod stage endpoint"
-    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   RerankArn:
     Description: "Rerank_arn"
     Value: !GetAtt FunctionSearchRerank.Arn
