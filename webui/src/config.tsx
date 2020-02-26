@@ -1,6 +1,6 @@
-const Apitree = 'https://qgehhm7uea.execute-api.us-east-1.amazonaws.com/Prod/'; // Cloudformation ProdDataEndpoint
-const AnonymousPoolId = 'us-east-1:545cb159-174b-4ac0-96b3-e6cec441b18c' //Cloudformation WebUIAnonymousPoolId
-const StreamName = 'teststr-Clickstream' // Cloudformation WebUIStreamName
+const Apitree = 'https://oy13u4yhcf.execute-api.us-east-1.amazonaws.com/Prod/'; // Cloudformation ProdDataEndpoint
+const AnonymousPoolId = 'us-east-1:74e1de2e-391f-4437-918f-b6f067c98a53' //Cloudformation WebUIAnonymousPoolId
+const StreamName = 'pstore-Clickstream' // Cloudformation WebUIStreamName
 
 
 export default {
