@@ -138,7 +138,7 @@ export class RecommendationList extends React.Component<
       md = 4;
     }
     else {
-      xs = 4;
+      xs = 6;
       md = 3;
     }
     let productcat: JSX.Element[] = [];

@@ -21,6 +21,8 @@ def handler(event, context):
 def send_clickEvent(clickEvent):
     try:
         session_ID = clickEvent['sessionID']
+        if session_ID ==  None:
+            session_ID = str(uuid.uuid1())
     except:
         session_ID = str(uuid.uuid1())
 

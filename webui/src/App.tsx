@@ -90,6 +90,7 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
         userSelectedName: `${userList[eventKey].firstName} ${userList[eventKey].lastName}`
       });
       this.setState({ selectedUser: userList[eventKey]});
+      this.setState({ SID: SID});
       localStorage.setItem('user', JSON.stringify(userList[eventKey]));
       localStorage.setItem('SID', SID);
     }
