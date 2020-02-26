@@ -77,10 +77,18 @@ sam deploy \
 
 #TODO: edit webui/src/config.tsx to point to the same API
 
+echo "Goto ${CYAN}/webui/src/${NC}, Open ${CYAN}confix.tsx${NC} file and edit the following varible. These varible can be found in cloudformation output."
+echo "Apitree"
+echo "AnonymousPoolId"
+echo "StreamName"
+
+echo "After finish editing ${CYAN}confix.tsx${NC}"
+read -n 1 -s -r -p "Press any key to continue"
+
 echo "Getting web bucket name from stack output..."
 WEBBUCKETNAME=`aws cloudformation describe-stacks --stack-name $STACKNAME \
     --query 'Stacks[0].Outputs[?OutputKey==\`WebBucketName\`].OutputValue' \
-    --output text`
+    --output text --profile $AWSPROFILE`
 echo $WEBBUCKETNAME
 
 echo "Uploading web assets..."
