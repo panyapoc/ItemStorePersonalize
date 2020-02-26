@@ -6,6 +6,7 @@ import RecommendationList from "./modules/recommendationList/recommendationList"
 import notFound from "./modules/notFound/notFound";
 import ProductDetail from "./modules/productDetail/productDetail";
 import SearchBar from "./modules/searchBar/searchBar";
+import uuid, { v4 as uuidv4 } from 'uuid';
 import "./App.css";
 
 const userList = [
@@ -48,7 +49,8 @@ interface User {
 
 interface AppState {
   selectedUser: User | undefined;
-  userSelectedName : string
+  userSelectedName : string;
+  SID : string | null;
 }
 
 class App extends Component<RouteComponentProps<AppProps>, AppState> {
@@ -59,12 +61,14 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
       let userobj = JSON.parse(user)
       this.state = {
         selectedUser: userobj,
-        userSelectedName : `${userobj.firstName} ${userobj.lastName}`
+        userSelectedName : `${userobj.firstName} ${userobj.lastName}`,
+        SID : localStorage.getItem('SID')
       };
     }else{
       this.state = {
         selectedUser: undefined,
-        userSelectedName : ''
+        userSelectedName : '',
+        SID : null
       };
     }
     this.renderSelectOptions = this.renderSelectOptions.bind(this);
@@ -74,16 +78,21 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
 
   renderSelectOptions(eventKey : any) {
     console.log('eventKey',eventKey)
+    let SID = uuidv4()
     if(eventKey === 'anonymous'){
       this.setState({ userSelectedName: 'anonymous'});
       this.setState({ selectedUser: undefined});
+      this.setState({ SID: null});
       localStorage.removeItem('user');
+      localStorage.removeItem('SID');
     }else{
       this.setState({
         userSelectedName: `${userList[eventKey].firstName} ${userList[eventKey].lastName}`
       });
       this.setState({ selectedUser: userList[eventKey]});
+      this.setState({ SID: SID});
       localStorage.setItem('user', JSON.stringify(userList[eventKey]));
+      localStorage.setItem('SID', SID);
     }
   }
 
@@ -110,9 +119,9 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
           <Navbar.Collapse>
             <Nav className="userstate" pullRight>
               <NavItem>
-                SignIn as:
+                {`SessionID : ${this.state.SID}`}
               </NavItem>
-              <NavDropdown className='loginAs' title={this.state.userSelectedName} id="basic-nav-dropdown" onSelect={this.renderSelectOptions}>
+              <NavDropdown className='loginAs' title={'loginAs: '+this.state.userSelectedName} id="basic-nav-dropdown" onSelect={this.renderSelectOptions}>
                 {userList.map((item, key) =>
                   <MenuItem id={`user${key}`} eventKey={key}>{item.firstName +' '+item.lastName }</MenuItem>
                 )}
