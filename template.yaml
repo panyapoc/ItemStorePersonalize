@@ -485,6 +485,12 @@ Resources:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
+        CustomErrorResponses:
+          -
+            ErrorCachingMinTTL: 300
+            ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
         DefaultCacheBehavior: # S3 origin is default
           AllowedMethods:
             - GET
@@ -531,11 +537,6 @@ Resources:
         DefaultRootObject: index.html
         Enabled: true
         HttpVersion: http2
-        CustomErrorResponses:
-          ErrorCachingMinTTL: 300
-          ErrorCode: 403
-          ResponseCode: 200
-          ResponsePagePath: /index.html
         Origins:
           -
             # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
