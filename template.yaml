@@ -531,7 +531,7 @@ Resources:
         DefaultRootObject: index.html
         Enabled: true
         HttpVersion: http2
-        CustomErrorResponse:
+        CustomErrorResponses:
           ErrorCachingMinTTL: 300
           ErrorCode: 403
           ResponseCode: 200
