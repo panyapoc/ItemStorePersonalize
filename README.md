@@ -1,5 +1,7 @@
 # ItemStore
 
+Sample ItemStore https://d2nwbg6r7fdle8.cloudfront.net/
+
 ## Folder Structure
 
 ``` Tree

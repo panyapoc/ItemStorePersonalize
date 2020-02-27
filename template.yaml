@@ -531,7 +531,7 @@ Resources:
                 - Athorization
                 - Content-Type
               QueryString: true
-            PathPattern: "/api-prod/*"
+            PathPattern: "/Prod/*"
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
         DefaultRootObject: index.html
