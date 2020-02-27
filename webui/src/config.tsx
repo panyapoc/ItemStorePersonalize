@@ -1,7 +1,7 @@
 // Apitree use output Cloudformation ProdDataEndpoint or via cloudfront use "Prod/
 const Apitree = 'Prod/'; // Cloudformation ProdDataEndpoint
-const AnonymousPoolId = 'us-east-1:74e1de2e-391f-4437-918f-b6f067c98a53' //Cloudformation WebUIAnonymousPoolId
-const StreamName = 'pstore-Clickstream' // Cloudformation WebUIStreamName
+const AnonymousPoolId = 'us-east-1:485e95e2-3f4f-44a5-a704-c73543b144a6' //Cloudformation WebUIAnonymousPoolId
+const StreamName = 'teststr-Clickstream' // Cloudformation WebUIStreamName
 
 
 export default {
