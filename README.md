@@ -96,6 +96,10 @@ This may take up to and over an hour to complete, mostly on the deployment of in
     * AnonymousPoolId
     * StreamName
 
+## Note for Personazlize
+
+for SIMS solution with HPO perform much better then non HPO
+
 # API doc
 
 API Document

@@ -86,7 +86,7 @@ echo "Getting web bucket name from stack output..."
 WEBBUCKETNAME=`aws cloudformation describe-stacks --stack-name $STACKNAME \
     --query 'Stacks[0].Outputs[?OutputKey==\`WebBucketName\`].OutputValue' \
     --profile $AWSPROFILE --region us-east-1 \
-    --output text `
+    --output text`
 echo $WEBBUCKETNAME
 
 echo "Running web UI build..."
@@ -97,7 +97,7 @@ cd ..
 
 echo "Uploading web assets..."
 cd webui/build
-aws s3 sync . "s3://${WEBBUCKETNAME}/web" --delete
+aws s3 sync . "s3://${WEBBUCKETNAME}/web" --delete --profile $AWSPROFILE
 cd ../..
 
 echo -e "${CYAN}Done!${NC}"
