@@ -132,21 +132,25 @@ export class RecommendationList extends React.Component<
   createTable = () => {
     let listItems = this.state.items;
     let userid = this.props.userId;
-    var xs: number | undefined,md: number | undefined
+    var xs: number ,md: number , lg : number,sm : number
     if (this.props.mode === RecommendationMode.Normal){
-      xs = 6;
-      md = 4;
+      xs = 12;
+      sm = 6;
+      md = 6;
+      lg = 4;
     }
     else {
-      xs = 6;
-      md = 3;
+      xs = 12;
+      sm = 6;
+      md = 4;
+      lg = 3;
     }
     let productcat: JSX.Element[] = [];
 
     try {
       listItems.forEach(function(item, index) {
         productcat.push(
-            <Col xs={xs} md={md} className="product" key={index}>
+            <Col xs={xs} sm={sm} md={md} lg={lg} className="product" key={index}>
               <ProductRow
                 uid={userid}
                 key={item.asin}
