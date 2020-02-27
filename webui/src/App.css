@@ -54,7 +54,7 @@
   overflow-x: auto;
   white-space: nowrap;
 }
-.testimonial-group > .row > .col-xs-6 {
+.testimonial-group > .row > .col-xs-12 {
   display: inline-block;
   float: none;
 }

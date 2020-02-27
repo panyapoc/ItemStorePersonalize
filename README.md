@@ -1,5 +1,7 @@
 # ItemStore
 
+Sample ItemStore https://d2nwbg6r7fdle8.cloudfront.net/
+
 ## Folder Structure
 
 ``` Tree
@@ -95,6 +97,10 @@ This may take up to and over an hour to complete, mostly on the deployment of in
     * Apitree
     * AnonymousPoolId
     * StreamName
+
+## Note for Personazlize
+
+for SIMS solution with HPO perform much better then non HPO
 
 # API doc
 

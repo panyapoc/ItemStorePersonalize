@@ -485,6 +485,12 @@ Resources:
     Type: AWS::CloudFront::Distribution
     Properties:
       DistributionConfig:
+        CustomErrorResponses:
+          -
+            ErrorCachingMinTTL: 300
+            ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
         DefaultCacheBehavior: # S3 origin is default
           AllowedMethods:
             - GET
@@ -525,7 +531,7 @@ Resources:
                 - Athorization
                 - Content-Type
               QueryString: true
-            PathPattern: "/api-prod/*"
+            PathPattern: "/Prod/*"
             TargetOriginId: api
             ViewerProtocolPolicy: https-only
         DefaultRootObject: index.html

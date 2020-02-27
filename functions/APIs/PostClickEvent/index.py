@@ -20,27 +20,35 @@ def handler(event, context):
 
 def send_clickEvent(clickEvent):
     try:
-        session_ID = clickEvent['sessionID']
-        if session_ID ==  None:
-            session_ID = str(uuid.uuid1())
+        userID = clickEvent['userID']
     except:
-        session_ID = str(uuid.uuid1())
+        userID = False
 
-    event = {
-        "itemId": str(clickEvent['itemID']),
-    }
-    event_json = json.dumps(event)
+    if(userID):
+        try:
+            session_ID = clickEvent['sessionID']
+            if session_ID ==  None:
+                session_ID = str(uuid.uuid1())
+        except:
+            session_ID = str(uuid.uuid1())
 
-    print ("SID ",session_ID)
+        event = {
+            "itemId": str(clickEvent['itemID']),
+        }
+        event_json = json.dumps(event)
 
-    # Make Call
-    response = personalize_events.put_events(
-        trackingId = os.environ["TRACKING_ID"],
-        userId= clickEvent['userID'],
-        sessionId = session_ID,
-        eventList = [{
-        'sentAt': int(time.time()),
-        'eventType': 'EVENT_TYPE',
-        'properties': event_json
-        }]
-    )
+        print ("SID ",session_ID)
+
+        # Make Call
+        response = personalize_events.put_events(
+            trackingId = os.environ["TRACKING_ID"],
+            userId= userID,
+            sessionId = session_ID,
+            eventList = [{
+            'sentAt': int(time.time()),
+            'eventType': 'EVENT_TYPE',
+            'properties': event_json
+            }]
+        )
+    else :
+        print('no userID anonymous')

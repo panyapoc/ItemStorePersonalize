@@ -1,5 +1,6 @@
-const Apitree = 'https://qgehhm7uea.execute-api.us-east-1.amazonaws.com/Prod/'; // Cloudformation ProdDataEndpoint
-const AnonymousPoolId = 'us-east-1:545cb159-174b-4ac0-96b3-e6cec441b18c' //Cloudformation WebUIAnonymousPoolId
+// Apitree use output Cloudformation ProdDataEndpoint or via cloudfront use "Prod/
+const Apitree = '/Prod/'; // Cloudformation ProdDataEndpoint
+const AnonymousPoolId = 'us-east-1:485e95e2-3f4f-44a5-a704-c73543b144a6' //Cloudformation WebUIAnonymousPoolId
 const StreamName = 'teststr-Clickstream' // Cloudformation WebUIStreamName
 
 
