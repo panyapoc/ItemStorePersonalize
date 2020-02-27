@@ -531,6 +531,11 @@ Resources:
         DefaultRootObject: index.html
         Enabled: true
         HttpVersion: http2
+        CustomErrorResponse:
+          ErrorCachingMinTTL: 300
+          ErrorCode: 403
+          ResponseCode: 200
+          ResponsePagePath: /index.html
         Origins:
           -
             # Note: DO NOT use !GetAtt WebBucket.DomainName for DomainName
