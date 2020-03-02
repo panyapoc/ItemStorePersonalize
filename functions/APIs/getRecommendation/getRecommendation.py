@@ -12,7 +12,7 @@ def handler(event, context):
     Campaign_ARN = os.environ["Campaign_ARN"]
 
     try :
-        userId = event['pathParameters'].get("userId", "NoUserID")
+        userId = event['pathParameters'].get("userid", "NoUserID")
     except :
         userId = "NoUserID"
     response = personalize_runtime.get_recommendations(

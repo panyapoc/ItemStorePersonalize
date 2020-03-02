@@ -1,15 +1,25 @@
+// Apitree use output Cloudformation ProdDataEndpoint or via cloudfront use "Prod/
+const Apitree = '/Prod/'; // Cloudformation ProdDataEndpoint
+const AnonymousPoolId = 'us-east-1:485e95e2-3f4f-44a5-a704-c73543b144a6' //Cloudformation WebUIAnonymousPoolId
+const StreamName = 'teststr-Clickstream' // Cloudformation WebUIStreamName
+
+
 export default {
+  region: "us-east-1",
+  kinesis:{
+    StreamName: StreamName,
+    PartitionKey: "webpartition"
+  },
   cognito: {
-    SignInUrl:
-      "https://all-store.auth.us-east-1.amazoncognito.com/login?response_type=code&client_id=2nr6bddje6ekkd93ac79bsd4l2&redirect_uri=http://localhost:3000/login"
+    AnonymousPoolId : AnonymousPoolId
   },
   api: {
-    GetListUrl: "/api-prod/recommendations/",
-    GetDetailsUrl: "/api-prod/items/",
-    ClickEventUrl: "/api-prod/clickevent",
-    SearchUrl: "/api-prod/search",
-    RecommendSimilar: "/api-prod/recommendationsitem/",
-    GetDescriptionForProduct: "/api-prod/description"
+    GetListUrl: `${Apitree}recommendations/`,
+    GetDetailsUrl: `${Apitree}items/`,
+    ClickEventUrl: `${Apitree}clickevent`,
+    SearchUrl: `${Apitree}search`,
+    RecommendSimilar: `${Apitree}recommendationsitem/`,
+    GetDescriptionForProduct: `${Apitree}description`
   },
   user: {
     id: "AIXZKN4ACSKI"

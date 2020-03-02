@@ -2,18 +2,42 @@
   margin-top: 15px;
 }
 
-.App .navbar-brand {
-  font-weight: bold;
+.navbar-brand {
+  height: auto;
+  color: #f69827 !important;
 }
 
-.App .orange {
-  color: #f69827;
+.product{
+  height: 350px;
+  max-height: 350px !important;
+  margin-bottom: 10px;
+}
+
+/* .loginAs{
+  background: none !important;
+} */
+
+.itemsForUser div,.similar div {
+  padding: 0 0 0 0;
+}
+
+.userstate{
+  padding: 15px;
+  margin-right: 20px;
+}
+
+.imgbox{
+  height: 350px;
+  line-height: 350px;
 }
 
 .App .white {
   color: #fff;
 }
 
+.navbar-toggle{
+  margin-top: 20px;
+}
 .shopping-icon-container {
   background-color: #f69827;
   padding: 2px 12px 0 12px;
@@ -25,40 +49,17 @@
   margin: 0 0 0 4px;
 }
 
-.line-height-24 {
-  line-height: 24px;
+
+.testimonial-group > .row {
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.testimonial-group > .row > .col-xs-12 {
+  display: inline-block;
+  float: none;
 }
 
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:active {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:focus {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:focus-within {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a:visited {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
-}
-
-.navbar-default .navbar-nav > .open > a,
-.navbar-default .navbar-nav > .active > a {
-  background-color: transparent !important;
-  background-image: none !important;
-  box-shadow: inset 0 0px 0px rgba(0, 0, 0, 0) !important;
+.itemTitle{
+  white-space: initial;
+  width: 290px;
 }
