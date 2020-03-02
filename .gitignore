@@ -2,7 +2,6 @@ venv/
 .aws-sam/
 *.zip
 package.yaml
-config.tsx
 
 # Temporary files:
 *.tmp.*
