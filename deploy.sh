@@ -32,9 +32,9 @@ then
     exit 1
 fi
 
-echo "Using '${CYAN}${AWSPROFILE}${NC}' as AWS profile"
-echo "Using '${CYAN}${SRCS3}${NC}' as source s3 bucket"
-echo "Using '${CYAN}${STACKNAME}${NC}' as CloudFormation stack name"
+echo -e "Using '${CYAN}${AWSPROFILE}${NC}' as AWS profile"
+echo -e "Using '${CYAN}${SRCS3}${NC}' as source s3 bucket"
+echo -e "Using '${CYAN}${STACKNAME}${NC}' as CloudFormation stack name"
 
 # Check UI build requirements:
 # if ! [[command -v node >/dev/null 2>&1] && [command -v npm >/dev/null 2>&1]]; then
@@ -44,6 +44,9 @@ echo "Using '${CYAN}${STACKNAME}${NC}' as CloudFormation stack name"
 #     echo "  Windows: https://github.com/coreybutler/nvm-windows"
 #     exit 1
 # fi
+
+# Exit if any build/deploy step fails:
+set -e
 
 echo "Running SAM build..."
 sam build \
@@ -66,21 +69,26 @@ sam deploy \
     --parameter-overrides BucketName=$SRCS3 ProjectName=$STACKNAME
         # --disable-rollback
 
-set -e
+echo "CloudFormation Stack Outputs:\n"
+aws cloudformation describe-stacks --stack-name $STACKNAME --query 'Stacks[0].Outputs'
+echo -e "\nGo to ${CYAN}/webui/src/${NC}, Open ${CYAN}confix.tsx${NC} file and edit the following varibles."
+echo -e "Set each one to its result in the CloudFormation output (see above)"
+echo -e "${RED}* AnonymousPoolId${NC}"
+echo -e "${RED}* StreamName${NC}"
 
-echo "Goto ${CYAN}/webui/src/${NC}, Open ${CYAN}confix.tsx${NC} file and edit the following varible. These varible can be found in cloudformation output."
-echo "${RED}* Apitree${NC}"
-echo "${RED}* AnonymousPoolId${NC}"
-echo "${RED}* StreamName${NC}"
-
-echo "After finish editing ${CYAN}confix.tsx${NC} Press y to continue"
-read -p "Continue (y/n)?" choice
+echo -e "After finish editing ${CYAN}confix.tsx${NC} Press y to continue"
+read -r -p "Continue (y/n)?" choice
 case "$choice" in
     y|Y ) echo "yes";;
-    n|N ) echo "no";;
-    * ) echo "invalid";;
+    n|N )
+        echo "Quitting: Remember to push your web assets to S3 to enable the website"
+        exit 2
+        ;;
+    * )
+        echo -e "${RED}Invalid response${NC} '$choice' - aborting"
+        exit 1
+        ;;
 esac
-## how to brake
 
 echo "Getting web bucket name from stack output..."
 WEBBUCKETNAME=`aws cloudformation describe-stacks --stack-name $STACKNAME \
