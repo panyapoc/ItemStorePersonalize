@@ -684,8 +684,8 @@ Resources:
       FunctionName: !Ref FunctionUploadItems
 
 Outputs:
-  ProdDataEndpoint:
-    Description: "API Prod stage endpoint"
+  APIEndpoint:
+    Description: "API production endpoint"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   WebBucketName:
     Value: !Ref WebBucket
