@@ -76,8 +76,6 @@ npm install
 npm run build
 cd ..
 
-exit 1
-
 echo "Uploading web assets..."
 cd webui/build
 aws s3 sync . "s3://${WEBBUCKETNAME}/web" --delete --profile $AWSPROFILE
