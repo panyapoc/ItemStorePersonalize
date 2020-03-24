@@ -1,14 +1,12 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: 'AWS::Serverless-2016-10-31'
 Parameters:
-  # BucketName:
-  #   Description: Name of the S3 bucket used to host deployment artifacts including web static assets.
-  #   Type: String
-  #   ConstraintDescription: Must be a valid S3 bucket in the same region as this deployment.
   ProjectName:
-    Description: project.
+    Description: Used as a prefix for project resources.  Can be up to 12 characters, lowercase letters (a-z) only.
     Type: String
-    Default: ItemStore
+    Default: allstore
+    AllowedPattern: "^[a-z]{1,12}"
+    ConstraintDescription: The ProjectName can be up to 12 characters, lowercase letters (a-z) only.
 Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
 Globals:
@@ -686,8 +684,8 @@ Resources:
       FunctionName: !Ref FunctionUploadItems
 
 Outputs:
-  ProdDataEndpoint:
-    Description: "API Prod stage endpoint"
+  APIEndpoint:
+    Description: "API production endpoint"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   WebBucketName:
     Value: !Ref WebBucket
