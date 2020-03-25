@@ -661,6 +661,11 @@ Resources:
                 - 'cognito-identity.amazonaws.com'
             Action:
               - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                cognito-identity.amazonaws.com:aud: !Ref UserEventIdentityPool
+              ForAnyValue:StringLike:
+                cognito-identity.amazonaws.com:amr: "unauthenticated"
       Policies:
         - PolicyName: KinesisStreamPut
           PolicyDocument:
