@@ -692,6 +692,9 @@ Outputs:
   APIEndpoint:
     Description: "API production endpoint"
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  AllStoreWebUI:
+    Description: "AllStore Website"
+    Value: !GetAtt WebCDN.DomainName
   WebBucketName:
     Value: !Ref WebBucket
     Description: S3 Bucket for web asset storage
