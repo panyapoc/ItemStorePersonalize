@@ -2,6 +2,10 @@
 
 Sample ItemStore https://d2nwbg6r7fdle8.cloudfront.net/
 
+## Architecture Diagram
+
+![alt text](ReadmeImg/AllStore-Architect.png "Architecture Diagram")
+
 ## Folder Structure
 
 ``` Tree
@@ -111,7 +115,7 @@ API Document
 Get item by item id (asin)
 
 ``` HTTP GET
-https://${Apitree}/withtag/items/B00004NKIQ
+https://${Apitree}/${StageName}/items/B00004NKIQ
 ```
 
 ``` Respose Example
@@ -128,7 +132,7 @@ https://${Apitree}/withtag/items/B00004NKIQ
 Get item recommendations anonymously
 
 ``` HTTP GET
-https://${Apitree}/withtag/recommendations/
+https://${Apitree}/${StageName}/recommendations/
 ```
 
 ``` Respose Example
@@ -150,7 +154,9 @@ https://${Apitree}/withtag/recommendations/
 Get personalize recommendations for userId
 
 ``` HTTP GET
-https://${Apitree}/withtag/recommendations/A1L5P841VIO02V
+https://${Apitree}/${StageName}/recommendations/${UserID}
+
+https://${Apitree}/${StageName}/recommendations/A1L5P841VIO02V
 ```
 
 ``` Respose Example
@@ -172,7 +178,9 @@ https://${Apitree}/withtag/recommendations/A1L5P841VIO02V
 Get personalize recommendations base on item similarity
 
 ``` HTTP GET
-https://${Apitree}/withtag/recommendationsitem/2094869245
+https://${Apitree}/${StageName}/recommendationsitem/${ItemID}
+
+https://${Apitree}/${StageName}/recommendationsitem/2094869245
 ```
 
 ``` Respose Example
@@ -195,7 +203,9 @@ Searching
 ⚠️ {query} cannot be null
 
 ``` HTTP GET
-https://${Apitree}/withtag/search?q=Gun
+https://${Apitree}/${StageName}/search?q=${querytext}
+
+https://${Apitree}/${StageName}/search?q=Gun
 ```
 
 ``` Respose Example
@@ -218,7 +228,9 @@ Personalize Search
 ⚠️ {query} cannot be null
 
 ``` HTTP GET
-https://${Apitree}/withtag/search?q=Gun&u=A1L5P841VIO02V
+https://${Apitree}/${StageName}/search?q=${querytext}&u=${UserID}
+
+https://${Apitree}/${StageName}/search?q=Gun&u=A1L5P841VIO02V
 ```
 
 ``` Respose Example
