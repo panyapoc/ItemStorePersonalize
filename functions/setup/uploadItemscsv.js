@@ -1,89 +1,120 @@
-const csv = require('csvtojson');
+// External Dependencies:
 const AWS = require("aws-sdk");
-const response = require('cfn-response');
-const uuid = require("uuid");
-const  documentClient = new AWS.DynamoDB.DocumentClient();
-const  s3Client = new AWS.S3();
+const response = require("cfn-response");
+const csv = require("csvtojson");
 
-const csvFilePath = 'items_w_Metadata.csv';
+// Local Dependencies:
+const webAssets = require("./lib/web-assets");
+
+const documentClient = new AWS.DynamoDB.DocumentClient();
+
+const csvFilePath = "items_w_Metadata.csv";
 // UploadItems - Upload sample set of items to DynamoDB
 exports.handler = function (event, context, callback) {
   console.log("Received event:", JSON.stringify(event, null, 2));
   if (event.RequestType === "Create") {
-    console.log('reading csv');
-    csv()
-    .fromFile(csvFilePath)
-    .then((jsonObj)=>{
-        console.log(jsonObj);
-        uploadItemsData(jsonObj);
-        response.send(event,context, "SUCCESS");
-        callback(null,"items uploaded");
-    }).catch(function (err) {
-      console.log('Error: ',err);
-      var responseData = {
-        Error: "Upload items failed"
-      };
-      console.log(responseData.Error);
-      response.send(event, context, "FAILED", responseData);
-    });
-    return;
+    // In parallel:
+    Promise.all([
+      // Copy web assets to deployment bucket:
+      webAssets.copyAssets(process.env.WEB_ASSETS_SOURCE, process.env.WEB_DEPLOYMENT_LOCATION),
+      // Upload CSV items to DynamoDB:
+      csv().fromFile(csvFilePath)
+        .then((jsonObj) => {
+          console.log(jsonObj);
+          return uploadItemsData(jsonObj);
+        })
+    ])
+      .then(() => {
+        response.send(event, context, "SUCCESS");
+        callback(null, "items uploaded");
+      })
+      .catch((err) => {
+        console.error(err);
+        response.send(
+          event,
+          context,
+          "FAILED",
+          {
+            Error: "Upload items failed",
+          }
+        );
+        callback(err);
+      });
+  } else if (event.RequestType === "Create") {
+    console.log(`Clearing web bucket deployment ${process.env.WEB_DEPLOYMENT_LOCATION}`);
+    webAssets.deleteAssets(process.env.WEB_DEPLOYMENT_LOCATION)
+      .then(() => {
+        response.send(event, context, "SUCCESS");
+        callback(null, "items deleted");
+      })
+      .catch((err) => {
+        console.error(err);
+        response.send(
+          event,
+          context,
+          "FAILED",
+          {
+            Error: "Delete items failed",
+          }
+        );
+        callback(err);
+      });
   } else {
-    response.send(event,context, "SUCCESS");
-    return;
+    console.log(`event.RequestType ${event.RequestType} unknown - ignoring`);
+    response.send(event, context, "SUCCESS");
+    callback(null, "no action to take");
   }
 };
 
 function uploadItemsData(item_items) {
-  var items_array = [];
-  for (var i in item_items) {
-    var item = item_items[i];
+  const items_array = [];
+  for (let i in item_items) {
+    const item = item_items[i];
     // console.log(item.ITEM_ID);
-    var newitem = {
+    items_array.push({
       PutRequest: {
         Item: {
           "asin" : item.ITEM_ID,
           "title" : item.TITLE ? item.TITLE : "no title",
           "imUrl" : item.IMGURL ? item.IMGURL : "no imUrl",
-          "genre" : item.GENRE ? item.GENRE : "no tags"
+          "genre" : item.GENRE ? item.GENRE : "no tags",
         }
       }
-    };
-    items_array.push(newitem);
+    });
   }
 
   // Batch items into arrays of 25 for BatchWriteItem limit
-  var split_arrays = [],
-    size = 25;
+  const batchSize = parseInt(process.env.DYNAMODB_WRITE_BATCH_SIZE) || 25;
+  const split_arrays = [];
   while (items_array.length > 0) {
-    split_arrays.push(items_array.splice(0, size));
+    split_arrays.push(items_array.splice(0, batchSize));
   }
 
-  split_arrays.forEach(function (item_data) {
-    putItem(item_data);
+  let batchPromise = Promise.resolve();
+  split_arrays.forEach((item_data) => {
+    batchPromise = batchPromise.then(() => putItem(item_data));
   });
+
+  return batchPromise;
 }
 
-// Retrieve sample items from aws-itemstore-demo S3 Bucket
-function getItemsData() {
-  var params = {
-    Bucket: process.env.S3_BUCKET, // aws-itemstore-demo
-    Key: process.env.FILE_NAME // data/items.json
-  };
-  return s3Client.getObject(params).promise();
-}
-
-// Batch write items to DynamoDB
+/**
+ * Batch write items to DynamoDB
+ * @param {*} items_array 
+ * @returns {Promise<void>} Rejecting if upload fails.
+ */
 function putItem(items_array) {
-  var tableName = process.env.TABLE_NAME; // [ProjectName]-Items
-  var params = {
+  const tableName = process.env.TABLE_NAME; // [ProjectName]-Items
+  const params = {
     RequestItems: {
       [tableName]: items_array
     }
   };
-  var batchWritePromise = documentClient.batchWrite(params).promise();
-  batchWritePromise.then(function (data) {
+  const batchWritePromise = documentClient.batchWrite(params).promise();
+  return batchWritePromise.then(() => {
     console.log(`${items_array.length} Items imported`);
-  }).catch(function (err) {
+  }).catch((err) => {
     console.log(err);
+    throw err;
   });
 }

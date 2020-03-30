@@ -1,7 +1,7 @@
 import React from "react";
-import AWS from 'aws-sdk';
+import AWS from "aws-sdk";
 import { Product } from "../storeItem/storeItem";
-import config from "../../config";
+import getConfig from "../../config";
 import "./productDetail.css";
 import queryString from "query-string";
 import RecommendationList from "../recommendationList/recommendationList";
@@ -13,13 +13,16 @@ import { Html5Entities } from "html-entities";
 
 const htmlEntities = new Html5Entities();
 
-AWS.config.update({
-  region: config.region,
-  credentials: new AWS.CognitoIdentityCredentials({
-    IdentityPoolId: config.cognito.AnonymousPoolId
-  })
+const configP = getConfig();
+const kinesisP = configP.then((config) => {
+  AWS.config.update({
+    credentials: new AWS.CognitoIdentityCredentials({
+      IdentityPoolId: config.cognito.AnonymousPoolId
+    }),
+    region: config.region,
+  });
+  return new AWS.Kinesis();
 });
-var kinesis = new AWS.Kinesis();
 
 type ProductDetailsProp = {
   id: string;
@@ -44,32 +47,39 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
     };
   }
 
-  submitClickStreamData = () => {
+  submitClickStreamData = async () => {
     const values = queryString.parse(this.props.location.search);
 
     try {
-      var params = {
+      const config = await configP;
+      const params = {
         Data: JSON.stringify({
               userID: values.uid,
               itemID: this.props.match.params.id,
-              sessionID : localStorage.getItem('SID')
+              sessionID: localStorage.getItem("SID"),
             }),
         PartitionKey: config.kinesis.PartitionKey, /* required */
         StreamName: config.kinesis.StreamName /* required */
       };
-      console.table(params)
+      console.table(params);
+
+      const kinesis = await kinesisP;
       kinesis.putRecord(params, function(err, data) {
-        if (err) console.log(err, err.stack); // an error occurred
-        else     console.log(data);           // successful response
+        if (err) {
+          console.error(err, err.stack);
+        } else {
+          console.log(data);
+        }
       });
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
   };
 
   async componentDidMount() {
     this.submitClickStreamData();
 
+    const config = await configP;
     let productDetailsUrl =
       config.api.GetDetailsUrl + this.props.match.params.id;
 

@@ -4,21 +4,24 @@
 // the same as our CloudFront forwarding path:
 const Apitree = "/Prod/";
 
-export default {
+// Define static config properties:
+// (Setting dynamically-initialized props to null with override type annotation for TS)
+const staticConfig = {
   region: "us-east-1",
-  kinesis:{
+  kinesis: {
     // Force (string|undefined) env vars to string, to keep TypeScript happy:
-    StreamName: `${process.env.REACT_APP_EVENT_STREAM_NAME}`,
+    StreamName: null as unknown as string, //`${process.env.REACT_APP_EVENT_STREAM_NAME}`,
     PartitionKey: "webpartition"
   },
   cognito: {
-    AnonymousPoolId : `${process.env.REACT_APP_ANONYMOUS_POOL_ID}`,
+    AnonymousPoolId : null as unknown as string, //`${process.env.REACT_APP_ANONYMOUS_POOL_ID}`,
   },
   api: {
     GetListUrl: `${Apitree}recommendations/`,
     GetDetailsUrl: `${Apitree}items/`,
     ClickEventUrl: `${Apitree}clickevent`,
     SearchUrl: `${Apitree}search`,
+    SessionUrl: `${Apitree}session`,
     RecommendSimilar: `${Apitree}recommendationsitem/`,
     GetDescriptionForProduct: `${Apitree}description`
   },
@@ -26,3 +29,27 @@ export default {
     id: "AIXZKN4ACSKI"
   }
 };
+
+interface DynamicConfig {
+  AnonymousPoolId: string,
+  StreamName: string,
+}
+
+async function initSession() {
+  const dynamicConfigResponse = await fetch(staticConfig.api.SessionUrl)
+  if (!dynamicConfigResponse.ok) {
+    throw new Error("Failed to start session");
+  }
+
+  const dynamicConfig: DynamicConfig = await dynamicConfigResponse.json();
+
+  // Doesn't matter that we'll just override the staticConfig, since session is one-shot:
+  staticConfig.kinesis.StreamName = dynamicConfig.StreamName;
+  staticConfig.cognito.AnonymousPoolId = dynamicConfig.AnonymousPoolId;
+
+  return staticConfig;
+}
+
+const initSessionP = initSession();
+
+export default () => initSessionP;

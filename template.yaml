@@ -7,6 +7,10 @@ Parameters:
     Default: allstore
     AllowedPattern: "^[a-z]{1,12}"
     ConstraintDescription: The ProjectName can be up to 12 characters, lowercase letters (a-z) only.
+  WebSource:
+    Description: S3 source for web UI assets
+    Type: String
+    Default: s3://public-personalize-demo-assets-us-east-1/webui.zip
 Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
 Globals:
@@ -334,7 +338,7 @@ Resources:
       Description: Upload sample data for items
       Handler: uploadItemscsv.handler
       Runtime: nodejs12.x
-      Role: !GetAtt DynamoDbRole.Arn
+      Role: !GetAtt LambdaAdminRole.Arn
       Timeout: 900
       MemorySize: 512
       Environment:
@@ -342,6 +346,8 @@ Resources:
           TABLE_NAME: !Sub '${ProjectName}-Items'
           S3_BUCKET: products-recommendation-dataset
           FILE_NAME: dummyitems.json
+          WEB_ASSETS_SOURCE: !Ref WebSource
+          WEB_DEPLOYMENT_LOCATION: !Sub "s3://${WebBucket}/web"
       CodeUri: ./functions/setup/
   FunctionGetRecommendations:
     Type: 'AWS::Serverless::Function'
@@ -389,6 +395,27 @@ Resources:
           Type: Api
           Properties:
             Path: /recommendationsitem/{itemid}
+            Method: get
+  FunctionSession:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub '${ProjectName}-Session'
+      Description: Get session config
+      Handler: main.handler
+      MemorySize: 128
+      Runtime: nodejs12.x
+      Role: !GetAtt LambdaAdminRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          IDENTITY_POOL_ID: !Ref UserEventIdentityPool
+          KINESIS_STREAM_NAME: !Ref PostClickEventStream
+      CodeUri: ./functions/APIs/Session/
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /session
             Method: get
 
 # ---------- LAMBDA FUNCTIONS for ELASTICSEARCH ---------
@@ -694,7 +721,7 @@ Outputs:
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   AllStoreWebUI:
     Description: "AllStore Website"
-    Value: !GetAtt WebCDN.DomainName
+    Value: !Sub 'https://${WebCDN.DomainName}/'
   WebBucketName:
     Value: !Ref WebBucket
     Description: S3 Bucket for web asset storage

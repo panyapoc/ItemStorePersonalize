@@ -1,7 +1,7 @@
 import React from "react";
 import ProductRow from "../storeItem/storeItem";
 import { Product } from "../storeItem/storeItem";
-import config from "../../config";
+import getConfig from "../../config";
 import "./recommendationList.css";
 
 import {
@@ -9,6 +9,8 @@ import {
   RouteComponentProps
 } from "react-router-dom";
 import { Col } from "react-bootstrap";
+
+const configP = getConfig();
 
 const RecommendationMode = {
   Normal: "Normal",
@@ -41,15 +43,21 @@ export class RecommendationList extends React.Component<
     super(props);
 
     this.state = {
-      userId: props.userId ?? config.user.id,
+      userId: props.userId,
       isLoading: true,
       items: [],
       mode: RecommendationMode.Normal
     };
+
+    configP.then(config => {
+      if (config.user.id && !this.props.userId) this.setState({ userId: config.user.id });
+    });
   }
 
-  _loadAsyncData() {
+  async _loadAsyncData() {
     let fetchLess = false;
+
+    const config = await configP;
 
     let getUrl = config.api.GetListUrl;
 

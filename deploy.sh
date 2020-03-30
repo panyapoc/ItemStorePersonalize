@@ -35,8 +35,30 @@ echo -e "Using '${CYAN}${AWSPROFILE}${NC}' as AWS profile"
 echo -e "Using '${CYAN}${SRCS3}${NC}' as source s3 bucket"
 echo -e "Using '${CYAN}${STACKNAME}${NC}' as CloudFormation stack name"
 
+# Check UI build requirements:
+if ! [[command -v node >/dev/null 2>&1] && [command -v npm >/dev/null 2>&1]]; then
+    echo -e "${RED}Error:${NC} To build the web UI from source, you need to install Node.JS and NPM."
+    echo "...and are recommended to do so via NVM for easy version management:"
+    echo "  Mac/Linux: https://github.com/nvm-sh/nvm"
+    echo "  Windows: https://github.com/coreybutler/nvm-windows"
+    exit 1
+fi
+
 # Exit if any build/deploy step fails:
 set -e
+
+echo "Running web UI build..."
+cd webui
+npm install
+npm run build
+cd ..
+
+echo "Staging web assets..."
+cd webui/build
+rm -f webui.zip
+zip -r webui.zip *
+aws s3 cp webui.zip "s3://${SRCS3}/webui.zip"
+cd ../..
 
 echo "Running SAM build..."
 sam build \
@@ -56,12 +78,7 @@ sam deploy \
     --stack-name $STACKNAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile $AWSPROFILE \
-    --parameter-overrides BucketName=$SRCS3 ProjectName=$STACKNAME
+    --parameter-overrides ProjectName=$STACKNAME WebSource=s3://${SRCS3}/webui.zip
         # --disable-rollback
-
-echo -e "${CYAN}CloudFormation components deployed!${NC}"
-
-echo "Running deploy-webui.sh..."
-./deploy-webui.sh $STACKNAME $AWSPROFILE
 
 echo -e "${CYAN}Full stack deployed!${NC}"
