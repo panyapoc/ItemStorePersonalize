@@ -1,10 +1,14 @@
+# Python Built-Ins:
 import base64
 import json
-import uuid
-import boto3
-import time
 import os
-personalize_events = boto3.client(service_name='personalize-events')
+import time
+import uuid
+
+# External Dependencies:
+import boto3
+
+personalize_events = boto3.client(service_name="personalize-events")
 
 def handler(event, context):
     for record in event['Records']:

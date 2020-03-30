@@ -275,7 +275,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-GetItem'
       Description: Get item by id
-      Handler: getItem.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
@@ -316,7 +316,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-ListItems'
       Description: Get list of items by category
-      Handler: listItems.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
@@ -353,14 +353,14 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-GetRecommendations'
-      CodeUri: ./functions/APIs/getRecommendation/
+      CodeUri: ./functions/APIs/GetRecommendations/
       Description: Get the product recommendations by user
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
           ddb_tablename: !Sub '${ProjectName}-Items'
           Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp'
-      Handler: getRecommendation.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -379,14 +379,14 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-GetRecommendationsByItem'
-      CodeUri: ./functions/APIs/getRecommendationByItem
+      CodeUri: ./functions/APIs/GetRecommendationsByItem
       Description: Get the product recommendations by item
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
           ddb_tablename: !Sub '${ProjectName}-Items'
           Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign'
-      Handler: getRecommendationByItem.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -426,7 +426,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-Search'
       Description: Search for items across item names, authors, and categories
-      Handler: index.handler
+      Handler: main.handler
       MemorySize: 256
       Role: !GetAtt ESSearchRole.Arn
       Runtime: python3.8
@@ -447,7 +447,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-Rerank'
       Description: Search then rerank
-      Handler: index.handler
+      Handler: main.handler
       MemorySize: 256
       Role: !GetAtt LambdaAdminRole.Arn
       Runtime: python3.8
@@ -641,12 +641,12 @@ Resources:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
-  PostClickEventFuction:
+  PostClickEventFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-PostClickEvent'
-      Description: PostClickEvent fucntion
-      Handler: index.handler
+      Description: PostClickEvent function
+      Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
       Role: !GetAtt LambdaAdminRole.Arn
@@ -739,7 +739,7 @@ Outputs:
     Value: !GetAtt FunctionGetRecommendations.Arn
   PostClickEventArn:
     Description: "PostClickEvent_arn"
-    Value: !GetAtt PostClickEventFuction.Arn
+    Value: !GetAtt PostClickEventFunction.Arn
   WebUIStreamName:
     Description: "WebUI Config kinesis.StreamName"
     Value: !Ref PostClickEventStream

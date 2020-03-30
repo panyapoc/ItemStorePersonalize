@@ -1,10 +1,13 @@
+# Python Built-Ins:
 import json
-import boto3
 import os
 
-personalize_runtime = boto3.client('personalize-runtime')
-lambdafunction = boto3.client('lambda')
-dynamodb = boto3.resource('dynamodb')
+# External Dependencies:
+import boto3
+
+personalize_runtime = boto3.client("personalize-runtime")
+lambdafunction = boto3.client("lambda")
+dynamodb = boto3.resource("dynamodb")
 
 RANKING_ARN = os.environ["RANKING_ARN"]
 SEARCH_ARN = os.environ["SEARCH_ARN"]

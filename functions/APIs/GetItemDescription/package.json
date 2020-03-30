@@ -1,5 +1,5 @@
 {
-  "name": "get-item-description",
+  "name": "@personalize-demo/get-item-description",
   "version": "1.0.0",
   "description": "Lambda to scrape a product description from Amazon.com by ASIN (ID)",
   "main": "main.js",
@@ -8,9 +8,9 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.647.0",
     "chrome-aws-lambda": "^2.0.2",
-    "puppeteer-core": "^2.0.0"
+    "puppeteer-core": "^2.1.1"
   }
 }

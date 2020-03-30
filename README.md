@@ -1,39 +1,46 @@
-# ItemStore
+# "AllStore" Amazon Personalize Demo
 
-Sample ItemStore https://d2nwbg6r7fdle8.cloudfront.net/
+A demo solution (and associated workshop Python notebooks in SageMaker) for product recommendations with 
+[Amazon Personalize](https://aws.amazon.com/personalize/).
 
-## Architecture Diagram
+See https://allstore.cloud/ for a running version, or deploy the stack in your own account with the button
+below, or customize and build the components from source!
+
+**COMING SOON: 'Deploy Stack' button**
+
+## Solution Architecture
 
 ![alt text](ReadmeImg/AllStore-Architect.png "Architecture Diagram")
 
 ## Folder Structure
 
-``` Tree
+```Tree
 ├── Personalize                                    [DataPipeline Notebook]
 │   ├── 1.Building_Campaign_HRNN.ipynb
-│   ├── 2.Building_Campaign_P-rank.ipynb
-│   ├── 3.View_Campaign_And_Interactions_jit.ipynb
-│   ├── Data\ Loader.ipynb
-│   ├── Datasets
-│   │   ├── allstore-ratings.csv
-│   │   ├── convertcsv.csv
-│   │   ├── items_w_Metadata.csv
-│   │   ├── ratings.csv
-│   │   └── users.csv
-│   └── PersonalizeUnicornGymDemo.yaml
-├── README.md                                       [README]
+│   ├── 2.Building_Campaign_SIMS.ipynb
+│   ├── 3.Building_Campaign_P-rank.ipynb
+│   ├── 4.View_Campaign_And_Interactions_jit.ipynb
+│   ├── Data Loader.ipynb
+│   └── Datasets
+│       ├── allstore-ratings.csv
+│       ├── convertcsv.csv
+│       ├── items_w_Metadata.csv
+│       ├── ratings.csv
+│       └── users.csv
 ├── data                                            [Raw data Repo]
-├── deploy.sh                                       [Deployment Script]
+├── deploy-webui.sh                                 [UI-only deployment script (for UI updates)]
+├── deploy.sh                                       [Deployment script (full stack)]
 ├── functions                                       [Lambda Fuction Repo]
 │   ├── APIs                                        [API Lamdba Fuction Repo]
-│   │   ├── GetDescriptionFunction                  [Get product description from Amz API]
-│   │   ├── Getitem                                 [Getitem]
-│   │   ├── ListItems                               [ListItems]
-│   │   ├── PostClickEvent                          [PostClickEvent]
-│   │   ├── Search                                  [Search]
-│   │   ├── SearchRerank                            [SearchRerank]
-│   │   ├── getRecommendation                       [getRecommendation]
-│   │   └── getRecommendationByItem                 [getRecommendationByItem]
+│   │   ├── GetItem                                 [Get item details]
+│   │   ├── GetItemDescription                      [Get product description from Amz API]
+│   │   ├── GetRecommendations                      [Get recommended items for a user]
+│   │   ├── GetRecommendationsByItem                [Get recommended items by item]
+│   │   ├── ListItems                               [List available items]
+│   │   ├── PostClickEvent                          [Notify the model of a click event]
+│   │   ├── Search                                  [Search for items by text]
+│   │   ├── SearchRerank                            [Re-rank search results for the user]
+│   │   └── Session                                 [Initialise a session (return stack params)]
 │   ├── setup                                       [Setup Lambda Fuction]
 │   └── streaming                                   [Streaming Lambda Fuction]
 │       └── UpdateSearchCluster
@@ -89,7 +96,7 @@ This script will:
 
 This may take up to and over an hour to complete, mostly on the deployment of infrastructure-intensive resources such as the ElasticSearch domain and CloudFront distribution.
 
-## Step 2: Post-deployment setup
+### Step 2: Post-deployment setup
 
 1. Goto [Personalize](/Personalize) to start Creating Campaign
 2. Once the Campaign is deploy go to the following fuction
@@ -102,23 +109,21 @@ This may take up to and over an hour to complete, mostly on the deployment of in
     * AnonymousPoolId
     * StreamName
 
-## Note for Personazlize
+**Note:** Personalize SIMS solution will perform much better with HPO than as configured by default.
 
-for SIMS solution with HPO perform much better then non HPO
+## API
 
-# API doc
+### /items/{id}
 
-API Document
+Get item by item id ([ASIN](https://www.amazon.com/gp/seller/asin-upc-isbn-info.html))
 
-## /items/{id}
-
-Get item by item id (asin)
-
-``` HTTP GET
+**HTTP GET**
+```
 https://${Apitree}/${StageName}/items/B00004NKIQ
 ```
 
-``` Respose Example
+**Response Example**
+```json
 {
     "rekognition": "[\"Crib\",\"Furniture\",\"Fence\"]",
     "asin": "B00004NKIQ",
@@ -127,15 +132,17 @@ https://${Apitree}/${StageName}/items/B00004NKIQ
 }
 ```
 
-## /recommendations
+### /recommendations
 
 Get item recommendations anonymously
 
-``` HTTP GET
+**HTTP GET**
+```
 https://${Apitree}/${StageName}/recommendations/
 ```
 
-``` Respose Example
+**Response Example**
+```json
 [{
     "rekognition": "[\"Electronics\",\"Helmet\",\"Clothing\",\"Apparel\",\"Headphones\",\"Headset\"]",
     "asin": "B001T7QJ9O",
@@ -149,17 +156,19 @@ https://${Apitree}/${StageName}/recommendations/
 },...]
 ```
 
-## /recommendations/{userId}
+### /recommendations/{userId}
 
 Get personalize recommendations for userId
 
-``` HTTP GET
+**HTTP GET**
+```
 https://${Apitree}/${StageName}/recommendations/${UserID}
 
 https://${Apitree}/${StageName}/recommendations/A1L5P841VIO02V
 ```
 
-``` Respose Example
+**Response Example**
+```json
 [{
     "rekognition": "[\"Electronics\",\"Helmet\",\"Clothing\",\"Apparel\",\"Headphones\",\"Headset\"]",
     "asin": "B001T7QJ9O",
@@ -173,17 +182,19 @@ https://${Apitree}/${StageName}/recommendations/A1L5P841VIO02V
 }, ...]
 ```
 
-## /recommendationsitem/{itemId}
+### /recommendationsitem/{itemId}
 
 Get personalize recommendations base on item similarity
 
-``` HTTP GET
+**HTTP GET**
+```
 https://${Apitree}/${StageName}/recommendationsitem/${ItemID}
 
 https://${Apitree}/${StageName}/recommendationsitem/2094869245
 ```
 
-``` Respose Example
+**Response Example**
+```json
 [{
     "rekognition": "[\"Lamp\",\"Flashlight\"]",
     "asin": "B0081O93N2",
@@ -197,18 +208,21 @@ https://${Apitree}/${StageName}/recommendationsitem/2094869245
 }, ...]
 ```
 
-## /search?q={query}
+### /search?q={query}
 
-Searching
-⚠️ {query} cannot be null
+Search for products by text query
 
-``` HTTP GET
+⚠️ `query` cannot be null
+
+**HTTP GET**
+```
 https://${Apitree}/${StageName}/search?q=${querytext}
 
 https://${Apitree}/${StageName}/search?q=Gun
 ```
 
-``` Respose Example
+**Response Example**
+```json
 [{
     "rekognition": "[\"Lock\",\"Combination Lock\"]",
     "asin": "B00004SQM9",
@@ -222,18 +236,21 @@ https://${Apitree}/${StageName}/search?q=Gun
 }, ...]
 ```
 
-## /search?q={query}&u={userid}
+### /search?q={query}&u={userid}
 
-Personalize Search
-⚠️ {query} cannot be null
+User-personalized for products by text query
 
-``` HTTP GET
+⚠️ `query` cannot be null
+
+**HTTP GET**
+```
 https://${Apitree}/${StageName}/search?q=${querytext}&u=${UserID}
 
 https://${Apitree}/${StageName}/search?q=Gun&u=A1L5P841VIO02V
 ```
 
-``` Respose Example
+**Response Example**
+```json
 [{
     "rekognition": "[\"Gun\",\"Weapon\",\"Weaponry\",\"Handgun\"]",
     "asin": "B0002INNYU",
@@ -245,4 +262,21 @@ https://${Apitree}/${StageName}/search?q=Gun&u=A1L5P841VIO02V
     "imUrl": "http://ecx.images-amazon.com/images/I/41H2beGGbZL._SY300_.jpg",
     "title": "Tipton Gun Vise"
 }, ..]
+```
+
+### /session
+
+Start a "session" (in reality, just fetching CloudFormation output params to configure the UI)
+
+**HTTP GET**
+```
+https://${Apitree}/${StageName}/session
+```
+
+**Response Example**
+```json
+{
+    "AnonymousPoolId": "us-east-1:c394e25c-63e8-4f39-9e62-123456ff123f",
+    "StreamName": "allstore-Clickstream"
+}
 ```

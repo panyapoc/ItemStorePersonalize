@@ -1,6 +1,9 @@
-import boto3
+# Python Built-Ins:
 import json
 import os
+
+# External Dependencies:
+import boto3
 import requests
 from requests_aws4auth import AWS4Auth
 
@@ -11,20 +14,19 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, servi
 
 index = "items_vanilla"
 type = "items"
-url = "https://" + os.environ["ESENDPOINT"] + "/_search" # ElasticSearch cluster URL
+url = f"https://{os.environ["ESENDPOINT"]}/_search" # ElasticSearch cluster URL
 
 # Search - Search for books across book names, authors, and categories
 def handler(event, context):
-
     # Put the user query into the query DSL for more accurate search results.
     # query = {
     #     "size": 25,
     #     "query": {
     #         "multi_match": {
     #             "query": event["queryStringParameters"]["q"],
-    #             "fields": ["asin", "title"]
-    #         }
-    #     }
+    #             "fields": ["asin", "title"],
+    #         },
+    #     },
     # }
 
     query = {
@@ -37,10 +39,10 @@ def handler(event, context):
                     "max_expansions": 50,
                     "prefix_length": 0,
                     "transpositions": True,
-                    "rewrite": "constant_score"
-                }
-            }
-        }
+                    "rewrite": "constant_score",
+                },
+            },
+        },
     }
 
     print(query)
@@ -49,24 +51,22 @@ def handler(event, context):
     headers = { "Content-Type": "application/json" }
 
     r = requests.get(url, auth=awsauth, headers=headers, data=json.dumps(query))
-
     print(r.text)
     document = json.loads(r.text)
 
     result = []
-    for item in document['hits']['hits'] :
-        result.append(item['_source']['asin'])
+    for item in document["hits"]["hits"] :
+        result.append(item["_source"]["asin"])
 
     # Create the response and add some extra content to support CORS
     response = {
         "statusCode": r.status_code,
         "headers": {
             "Access-Control-Allow-Origin": "*",
-            "Access-Control-Allow-Credentials": True
+            "Access-Control-Allow-Credentials": True,
         },
         "body": {
-            "result" : result
-        }
+            "result" : result,
+        },
     }
-
     return response
