@@ -70,7 +70,11 @@ echo "Running SAM package..."
 sam package \
     --output-template-file $PACKAGEFILE \
     --s3-bucket $SRCS3 \
+    --s3-prefix sam \
     --profile $AWSPROFILE
+
+echo "Copying final CloudFormation template to S3..."
+aws s3 cp $PACKAGEFILE "s3://${SRCS3}/package.yaml"
 
 echo "Running SAM deploy..."
 sam deploy \

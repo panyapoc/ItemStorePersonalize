@@ -6,7 +6,7 @@ A demo solution (and associated workshop Python notebooks in SageMaker) for prod
 See https://allstore.cloud/ for a running version, or deploy the stack in your own account with the button
 below, or customize and build the components from source!
 
-**COMING SOON: 'Deploy Stack' button**
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=AllStoreDemo&templateURL=https://public-personalize-demo-assets-us-east-1.s3.amazonaws.com/package.yaml)
 
 ## Solution Architecture
 
