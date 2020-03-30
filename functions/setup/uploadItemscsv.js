@@ -40,7 +40,7 @@ exports.handler = function (event, context, callback) {
         );
         callback(err);
       });
-  } else if (event.RequestType === "Create") {
+  } else if (event.RequestType === "Delete") {
     console.log(`Clearing web bucket deployment ${process.env.WEB_DEPLOYMENT_LOCATION}`);
     webAssets.deleteAssets(process.env.WEB_DEPLOYMENT_LOCATION)
       .then(() => {
