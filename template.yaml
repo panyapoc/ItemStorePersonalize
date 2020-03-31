@@ -350,6 +350,7 @@ Resources:
       Environment:
         Variables:
           PRODUCTS_SOURCE: !Ref ProductSource
+          PRODUCTS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/items'
           PRODUCTS_TABLE_NAME: !Ref TableItems
           WEB_ASSETS_SOURCE: !Ref WebSource
           WEB_DEPLOYMENT_LOCATION: !Sub 's3://${WebBucket}/web'

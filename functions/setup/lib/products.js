@@ -1,5 +1,5 @@
 // NodeJS Built-Ins:
-const { Writable } = require("stream");
+const { PassThrough, Writable } = require("stream");
 const { createGunzip } = require("zlib"); 
 
 // External Dependencies:
@@ -92,6 +92,7 @@ class DynamoDBWriter extends Writable {
 
       return this._docClient.batchWrite(writeParams).promise()
         .then(() => {
+          console.log(`Wrote ${bufferLen} records to DynamoDB`);
           this.itemsWritten += bufferLen;
           callback();
         })
@@ -168,14 +169,22 @@ function getParseChain(source) {
  * Stream product data from S3 source file into this stack's DynamoDB items table
  * @param {string} source s3:// URI of an item data file
  * @param {string} ddbTableName DynamoDB table name to send data to
+ * @param {string} rawUploadDest=null (If set) s3:// prefix to copy the raw file to
  * @returns {Promise<void>} resolving on completion
  */
-function loadProducts(source, ddbTableName) {
+function loadProducts(source, ddbTableName, rawUploadDest=null) {
   if (!source.toLowerCase().startsWith("s3://")) {
     throw new Error(`source must be an s3:// URI - got '${source}'`);
   }
+  if (rawUploadDest && !rawUploadDest.toLowerCase().startsWith("s3://")) {
+    throw new Error(`rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
+  }
 
   const [srcBucket, srcKey] = source.slice("s3://".length).split(/\/(.*)/);
+  const srcFileName = source.substring(source.lastIndexOf("/") + 1);
+  const [destBucket, destPrefix] = rawUploadDest
+    ? rawUploadDest.slice("s3://".length).split(/\/(.*)/)
+    : [null, null];
   return new Promise((resolve, reject) => {
     try {
       let failed = false;
@@ -199,7 +208,7 @@ function loadProducts(source, ddbTableName) {
       });
 
       writer.on("finish", () => {
-        console.log(`Wrote ${writer.itemsWritten} items to DynamoDB`);
+        console.log(`Done uploading ${writer.itemsWritten} items to DynamoDB`);
         console.log("Missing value counts:", writer.missingValues);
         if (!failed) resolve(writer.itemsWritten);
       });
@@ -234,15 +243,61 @@ function loadProducts(source, ddbTableName) {
         failed = true;
       });
 
-      // Connect the chain together (downstream first):
+      // Connect the chain together (downstream first, both reader connections must be made synchronously):
       parseStreams[parseStreams.length - 1].pipe(writer);
       reader.pipe(parseStreams[0]);
+      if (rawUploadDest) {
+        // AWS SDK might read events from a stream rather than implementing a writable sink, so we should
+        // duplicate the stream to keep both sinks happy:
+        // https://stackoverflow.com/questions/19553837/node-js-piping-the-same-readable-stream-into-multiple-writable-targets
+        const readerDuplicate = new PassThrough();
+        reader.pipe(readerDuplicate);
+        console.log(`Forwarding raw products file to s3://${destBucket}/${destPrefix}/${srcFileName}`);
+        s3Client.upload(
+          {
+            Body: readerDuplicate,
+            Bucket: destBucket,
+            Key: `${destPrefix}/${srcFileName}`,
+          }, (err, done) => {
+            if (err) {
+              console.error("S3 raw product data upload failed: ", err);
+            } else {
+              console.log("S3 raw product data upload complete");
+            }
+          }
+        );
+      }
     } catch (err) {
       reject(err);
     }
   });
 }
 
+/**
+ * Clean up created artifacts in rawUpload S3
+ * @param {string} source s3:// URI of an item data file
+ * @param {string} rawUploadDest=null (If set) s3:// prefix to copy the raw file to
+ * @returns {Promise<void>} resolving on completion
+ */
+function destroy(source, rawUploadDest) {
+  if (!rawUploadDest.toLowerCase().startsWith("s3://")) {
+    throw new Error(`rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
+  }
+
+  const srcFileName = source.substring(source.lastIndexOf("/") + 1);
+  const [destBucket, destPrefix] = rawUploadDest
+    ? rawUploadDest.slice("s3://".length).split(/\/(.*)/)
+    : [null, null];
+  
+  console.log(`Deleting s3://${destBucket}/${destPrefix}/${srcFileName}...`);
+  // This returns success if the object is already deleted, so no error catching required:
+  return s3Client.deleteObject({
+    Bucket: destBucket,
+    Key: `${destPrefix}/${srcFileName}`,
+  }).promise();
+}
+
 module.exports = {
+  destroy,
   loadProducts,
 };

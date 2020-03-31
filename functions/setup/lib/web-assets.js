@@ -58,7 +58,7 @@ async function copyAssets(source, dest) {
   });
 
   await Promise.all(uploadPromises);
-  console.log("Done!");
+  console.log("Done uploading web assets!");
 }
 
 async function deleteAssets(dest) {

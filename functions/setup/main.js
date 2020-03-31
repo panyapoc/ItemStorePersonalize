@@ -19,7 +19,11 @@ exports.handler = function setup(event, context, callback) {
       webAssets.copyAssets(process.env.WEB_ASSETS_SOURCE, process.env.WEB_DEPLOYMENT_LOCATION),
       // Upload product items to DynamoDB (if env var provided):
       process.env.PRODUCTS_SOURCE
-        ? products.loadProducts(process.env.PRODUCTS_SOURCE, process.env.PRODUCTS_TABLE_NAME)
+        ? products.loadProducts(
+          process.env.PRODUCTS_SOURCE,
+          process.env.PRODUCTS_TABLE_NAME,
+          process.env.PRODUCTS_RAW_UPLOAD,
+        )
         : new Promise((resolve) => {
           console.warn("Skipping product data upload: no PRODUCTS_SOURCE env var provided");
           return resolve();
@@ -31,6 +35,7 @@ exports.handler = function setup(event, context, callback) {
         callback(null, "items uploaded");
       })
       .catch((err) => {
+        console.error("Setup failed");
         console.error(err);
         response.send(
           event,
@@ -44,7 +49,20 @@ exports.handler = function setup(event, context, callback) {
       });
   } else if (event.RequestType === "Delete") {
     console.log(`Clearing web bucket deployment ${process.env.WEB_DEPLOYMENT_LOCATION}`);
-    webAssets.deleteAssets(process.env.WEB_DEPLOYMENT_LOCATION)
+    Promise.all([
+      // Delete web assets from S3:
+      webAssets.deleteAssets(process.env.WEB_DEPLOYMENT_LOCATION),
+      // Delete product data, if we stored it in S3:
+      process.env.PRODUCTS_SOURCE
+        ? products.destroy(
+          process.env.PRODUCTS_SOURCE,
+          process.env.PRODUCTS_RAW_UPLOAD,
+        )
+        : new Promise((resolve) => {
+          console.warn("Skipping product data S3 delete: no PRODUCTS_RAW_UPLOAD was performed");
+          return resolve();
+        }),
+    ])
       .then(() => {
         response.send(event, context, "SUCCESS");
         callback(null, "items deleted");
