@@ -286,7 +286,7 @@ Resources:
       Timeout: 120
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
+          TABLE_NAME: !Ref TableItems
       CodeUri: ./functions/APIs/GetItem/
       Events:
         APIgateway:
@@ -327,7 +327,7 @@ Resources:
       Timeout: 120
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
+          TABLE_NAME: !Ref TableItems
       CodeUri: ./functions/APIs/ListItems/
       Events:
         APIgateway:
@@ -363,7 +363,7 @@ Resources:
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
-          ddb_tablename: !Sub '${ProjectName}-Items'
+          ddb_tablename: !Ref TableItems
           Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp'
       Handler: main.handler
       MemorySize: 256
@@ -389,7 +389,7 @@ Resources:
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
-          ddb_tablename: !Sub '${ProjectName}-Items'
+          ddb_tablename: !Ref TableItems
           Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign'
       Handler: main.handler
       MemorySize: 256
@@ -445,7 +445,7 @@ Resources:
       Environment:
         Variables:
           ESENDPOINT: !GetAtt ElasticsearchDomain.DomainEndpoint
-          DDB_TABLE: !Sub '${ProjectName}-Items'
+          DDB_TABLE: !Ref TableItems
           REGION: !Ref 'AWS::Region'
   FunctionSearchRerank:
     Type: 'AWS::Serverless::Function'
@@ -461,7 +461,7 @@ Resources:
       Environment:
         Variables:
           ESENDPOINT: !GetAtt ElasticsearchDomain.DomainEndpoint
-          DDB_TABLE: !Sub '${ProjectName}-Items'
+          DDB_TABLE: !Ref TableItems
           SEARCH_ARN: !GetAtt FunctionSearch.Arn
           RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
       Events:
