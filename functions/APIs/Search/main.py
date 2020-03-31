@@ -14,7 +14,7 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, servi
 
 index = "items_vanilla"
 type = "items"
-url = f"https://{os.environ["ESENDPOINT"]}/_search" # ElasticSearch cluster URL
+url = f"https://{os.environ['ESENDPOINT']}/_search" # ElasticSearch cluster URL
 
 # Search - Search for books across book names, authors, and categories
 def handler(event, context):
