@@ -3,14 +3,20 @@
 A demo solution (and associated workshop Python notebooks in SageMaker) for product recommendations with 
 [Amazon Personalize](https://aws.amazon.com/personalize/).
 
-See https://allstore.cloud/ for a running version, or deploy the stack in your own account with the button
-below, or customize and build the components from source!
+* See https://allstore.cloud/ for a running version, or
+* Deploy the stack in your own account with the button below, or
+* Read on to customize and build the components from source!
 
 [![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=AllStoreDemo&templateURL=https://public-personalize-demo-assets-us-east-1.s3.amazonaws.com/package.yaml)
 
 ## Solution Architecture
 
 ![alt text](ReadmeImg/AllStore-Architect.png "Architecture Diagram")
+
+### Initial Setup
+
+The CloudFormation stack deployment will automatically load initial product data from the S3 file you
+specify into DynamoDB (and, since they're connected via a stream, update Elasticsearch).
 
 ## Folder Structure
 
@@ -48,9 +54,9 @@ below, or customize and build the components from source!
 └── webui                                           [Store user interface]
 ```
 
-## Deployment Prerequisites
+## Custom Build Prerequisites
 
-In order to deploy this stack, you'll need:
+In order to build and deploy this stack, you'll need:
 
 ### Installed on your machine
 
