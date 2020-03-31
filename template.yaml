@@ -7,6 +7,10 @@ Parameters:
     Default: allstore
     AllowedPattern: "^[a-z]{1,12}"
     ConstraintDescription: The ProjectName can be up to 12 characters, lowercase letters (a-z) only.
+  ProductSource:
+    Description: S3 source for product data (.csv or .json, optionally compressed with .gz suffix)
+    Type: String
+    Default: s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv
   WebSource:
     Description: S3 source for web UI assets
     Type: String
@@ -333,21 +337,22 @@ Resources:
             Method: get
   FunctionUploadItems:
     Type: 'AWS::Serverless::Function'
+    DependsOn:
+      - WebBucket
     Properties:
       FunctionName: !Sub '${ProjectName}-UploadItems'
       Description: Upload sample data for items
-      Handler: uploadItemscsv.handler
+      Handler: main.handler
       Runtime: nodejs12.x
       Role: !GetAtt LambdaAdminRole.Arn
       Timeout: 900
-      MemorySize: 512
+      MemorySize: 256
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
-          S3_BUCKET: products-recommendation-dataset
-          FILE_NAME: dummyitems.json
+          PRODUCTS_SOURCE: !Ref ProductSource
+          PRODUCTS_TABLE_NAME: !Ref TableItems
           WEB_ASSETS_SOURCE: !Ref WebSource
-          WEB_DEPLOYMENT_LOCATION: !Sub "s3://${WebBucket}/web"
+          WEB_DEPLOYMENT_LOCATION: !Sub 's3://${WebBucket}/web'
       CodeUri: ./functions/setup/
   FunctionGetRecommendations:
     Type: 'AWS::Serverless::Function'
