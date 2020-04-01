@@ -174,10 +174,10 @@ function getParseChain(source) {
  */
 function loadProducts(source, ddbTableName, rawUploadDest=null) {
   if (!source.toLowerCase().startsWith("s3://")) {
-    throw new Error(`source must be an s3:// URI - got '${source}'`);
+    throw new Error(`Products source must be an s3:// URI - got '${source}'`);
   }
   if (rawUploadDest && !rawUploadDest.toLowerCase().startsWith("s3://")) {
-    throw new Error(`rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
+    throw new Error(`Products rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
   }
 
   const [srcBucket, srcKey] = source.slice("s3://".length).split(/\/(.*)/);
@@ -280,8 +280,9 @@ function loadProducts(source, ddbTableName, rawUploadDest=null) {
  * @returns {Promise<void>} resolving on completion
  */
 function destroy(source, rawUploadDest) {
+  if (!rawUploadDest) return Promise.resolve();  // Nothing to destroy
   if (!rawUploadDest.toLowerCase().startsWith("s3://")) {
-    throw new Error(`rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
+    throw new Error(`Products rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
   }
 
   const srcFileName = source.substring(source.lastIndexOf("/") + 1);
