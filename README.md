@@ -7,7 +7,7 @@ A demo solution (and associated workshop Python notebooks in SageMaker) for prod
 * Deploy the stack in your own account with the button below, or
 * Read on to customize and build the components from source!
 
-[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=AllStoreDemo&templateURL=https://public-personalize-demo-assets-us-east-1.s3.amazonaws.com/package.yaml)
+[![Launch Stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://us-east-1.console.aws.amazon.com/cloudformation/home#/stacks/new?stackName=AllStoreDemo&templateURL=https://public-personalize-demo-assets-us-east-1.s3.amazonaws.com/package.yaml)
 
 ## Solution Architecture
 
