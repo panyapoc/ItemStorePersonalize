@@ -19,6 +19,7 @@ class DynamoDBWriter extends Writable {
    * @param {Object} opts Extends & amends opts of NodeJS stream.Writable as follows
    * @param {number} opts.batchSize=25 Number of records that should be written to DDB at a time
    * @param {boolean} opts.objectMode=true Forced=true as required for this type of stream
+   * @param {number} opts.progressGranularity=500 Print logs when you've uploaded >=N items since last
    * @param {Object} opts.propDefaults={} Default `key` to `val` on each object (after map) - see details
    * @param {Object} opts.propMap={} Rename `key` to `val` on each object if only `key` is defined
    * @param {Array<string>} opts.propRemove=[] Remove these keys from each object (after map)
@@ -34,6 +35,7 @@ class DynamoDBWriter extends Writable {
     super(opts);
 
     this.batchSize = opts.batchSize || 25;
+    this.progressGranularity = opts.progressGranularity === 0 ? 0 : (opts.progressGranularity || 500);
     this.propDefaults = opts.propDefaults || {};
     this.propMap = opts.propMap || {};
     this.propRemove = opts.propRemove || [];
@@ -45,6 +47,7 @@ class DynamoDBWriter extends Writable {
 
     // Track a total number of items written to DynamoDB:
     this.itemsWritten = 0;
+    this._itemsWrittenSinceLog = 0;
     // ...And a dictionary from default property IDs to number of entries with value missing:
     this.missingValues = Object.keys(this.propDefaults).reduce(
       (acc, next) => {
@@ -99,7 +102,14 @@ class DynamoDBWriter extends Writable {
 
       return this._docClient.batchWrite(writeParams).promise()
         .then(() => {
-          console.log(`Wrote ${bufferLen} records to DynamoDB`);
+          this.itemsWritten += bufferLen;
+          this._itemsWrittenSinceLog += bufferLen;
+          if (this._itemsWrittenSinceLog >= this.progressGranularity) {
+            // (Nobody likes scrolling through logs for days)
+            console.log(`Wrote ${this._itemsWrittenSinceLog} records to DynamoDB`);
+            this._itemsWrittenSinceLog = 0;
+          }
+          
           this.itemsWritten += bufferLen;
           callback();
         })
