@@ -2,6 +2,7 @@
 const response = require("cfn-response");
 
 // Local Dependencies:
+const interactions = require("./lib/interactions");
 const products = require("./lib/products");
 const webAssets = require("./lib/web-assets");
 
@@ -26,6 +27,18 @@ exports.handler = function setup(event, context, callback) {
         )
         : new Promise((resolve) => {
           console.warn("Skipping product data upload: no PRODUCTS_SOURCE env var provided");
+          return resolve();
+        }),
+      // Upload interaction data to data science bucket (if env vars provided):
+      process.env.INTERACTIONS_SOURCE && process.env.INTERACTIONS_RAW_UPLOAD
+        ? interactions.create(
+          process.env.INTERACTIONS_SOURCE,
+          process.env.INTERACTIONS_RAW_UPLOAD,
+        )
+        : new Promise((resolve) => {
+          console.warn(
+            "Skipping interactions data upload: INTERACTIONS_SOURCE and INTERACTIONS_RAW_UPLOAD not provided"
+          );
           return resolve();
         }),
     ])
@@ -62,6 +75,18 @@ exports.handler = function setup(event, context, callback) {
           console.warn("Skipping product data S3 delete: no PRODUCTS_RAW_UPLOAD was performed");
           return resolve();
         }),
+        // Delete interaction data from data science bucket, if we stored it:
+        process.env.INTERACTIONS_SOURCE && process.env.INTERACTIONS_RAW_UPLOAD
+          ? interactions.destroy(
+            process.env.INTERACTIONS_SOURCE,
+            process.env.INTERACTIONS_RAW_UPLOAD,
+          )
+          : new Promise((resolve) => {
+            console.warn(
+              "Skipping interactions data delete: INTERACTIONS_SOURCE, INTERACTIONS_RAW_UPLOAD not provided"
+            );
+            return resolve();
+          }),
     ])
       .then(() => {
         response.send(event, context, "SUCCESS");

@@ -11,14 +11,18 @@ const s3Client = new AWS.S3();
 
 /**
  * Writable object stream implementation to upload objects to DynamoDB
+ * 
+ * Includes a few utilities for transforming objects on the way through.
  */
 class DynamoDBWriter extends Writable {
   /**
    * @param {Object} opts Extends & amends opts of NodeJS stream.Writable as follows
    * @param {number} opts.batchSize=25 Number of records that should be written to DDB at a time
    * @param {boolean} opts.objectMode=true Forced=true as required for this type of stream
+   * @param {number} opts.progressGranularity=500 Print logs when you've uploaded >=N items since last
    * @param {Object} opts.propDefaults={} Default `key` to `val` on each object (after map) - see details
    * @param {Object} opts.propMap={} Rename `key` to `val` on each object if only `key` is defined
+   * @param {Array<string>} opts.propRemove=[] Remove these keys from each object (after map)
    * @param {string} opts.tableName=DynamoDB table name
    * 
    * propDefaults are applied after propMap, **when the property value is falsy and not === 0 or false**.
@@ -31,8 +35,10 @@ class DynamoDBWriter extends Writable {
     super(opts);
 
     this.batchSize = opts.batchSize || 25;
+    this.progressGranularity = opts.progressGranularity === 0 ? 0 : (opts.progressGranularity || 500);
     this.propDefaults = opts.propDefaults || {};
     this.propMap = opts.propMap || {};
+    this.propRemove = opts.propRemove || [];
     if (!opts.tableName) throw new Error("opts.tableName (target table) is mandatory");
     this.tableName = opts.tableName;
 
@@ -41,6 +47,7 @@ class DynamoDBWriter extends Writable {
 
     // Track a total number of items written to DynamoDB:
     this.itemsWritten = 0;
+    this._itemsWrittenSinceLog = 0;
     // ...And a dictionary from default property IDs to number of entries with value missing:
     this.missingValues = Object.keys(this.propDefaults).reduce(
       (acc, next) => {
@@ -77,6 +84,9 @@ class DynamoDBWriter extends Writable {
       }
     }
 
+    // Remove disallowed keys:
+    this.propRemove.forEach(key => (delete chunk[key]));
+
     this._writeBuffer.push({ PutRequest: { Item: chunk } })
     
     const bufferLen = this._writeBuffer.length;
@@ -92,7 +102,14 @@ class DynamoDBWriter extends Writable {
 
       return this._docClient.batchWrite(writeParams).promise()
         .then(() => {
-          console.log(`Wrote ${bufferLen} records to DynamoDB`);
+          this.itemsWritten += bufferLen;
+          this._itemsWrittenSinceLog += bufferLen;
+          if (this._itemsWrittenSinceLog >= this.progressGranularity) {
+            // (Nobody likes scrolling through logs for days)
+            console.log(`Wrote ${this._itemsWrittenSinceLog} records to DynamoDB`);
+            this._itemsWrittenSinceLog = 0;
+          }
+          
           this.itemsWritten += bufferLen;
           callback();
         })
@@ -174,10 +191,10 @@ function getParseChain(source) {
  */
 function loadProducts(source, ddbTableName, rawUploadDest=null) {
   if (!source.toLowerCase().startsWith("s3://")) {
-    throw new Error(`source must be an s3:// URI - got '${source}'`);
+    throw new Error(`Products source must be an s3:// URI - got '${source}'`);
   }
   if (rawUploadDest && !rawUploadDest.toLowerCase().startsWith("s3://")) {
-    throw new Error(`rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
+    throw new Error(`Products rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
   }
 
   const [srcBucket, srcKey] = source.slice("s3://".length).split(/\/(.*)/);
@@ -205,6 +222,8 @@ function loadProducts(source, ddbTableName, rawUploadDest=null) {
           "IMGURL": "imUrl",
           "GENRE": "genre",
         },
+        // Keep safely under DynamoDB item size limit:
+        propRemove: ["also_buy", "also_viewed", "salesRank"],
       });
 
       writer.on("finish", () => {
@@ -280,8 +299,9 @@ function loadProducts(source, ddbTableName, rawUploadDest=null) {
  * @returns {Promise<void>} resolving on completion
  */
 function destroy(source, rawUploadDest) {
+  if (!rawUploadDest) return Promise.resolve();  // Nothing to destroy
   if (!rawUploadDest.toLowerCase().startsWith("s3://")) {
-    throw new Error(`rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
+    throw new Error(`Products rawUploadDest must be an s3:// URI if provided - got '${rawUploadDest}'`);
   }
 
   const srcFileName = source.substring(source.lastIndexOf("/") + 1);
