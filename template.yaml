@@ -11,6 +11,10 @@ Parameters:
     Description: S3 source for product data (.csv or .json, optionally compressed with .gz suffix)
     Type: String
     Default: s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv
+  InteractionSource:
+    Description: (Optional) S3 source for user-product interaction data (.csv or .json, optionally compressed with .gz suffix)
+    Type: String
+    Default: ''
   WebSource:
     Description: S3 source for web UI assets
     Type: String
@@ -349,6 +353,8 @@ Resources:
       MemorySize: 256
       Environment:
         Variables:
+          INTERACTIONS_SOURCE: !Ref InteractionSource
+          INTERACTIONS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/interactions'
           PRODUCTS_SOURCE: !Ref ProductSource
           PRODUCTS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/items'
           PRODUCTS_TABLE_NAME: !Ref TableItems

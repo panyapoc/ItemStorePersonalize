@@ -11,6 +11,8 @@ const s3Client = new AWS.S3();
 
 /**
  * Writable object stream implementation to upload objects to DynamoDB
+ * 
+ * Includes a few utilities for transforming objects on the way through.
  */
 class DynamoDBWriter extends Writable {
   /**
@@ -19,6 +21,7 @@ class DynamoDBWriter extends Writable {
    * @param {boolean} opts.objectMode=true Forced=true as required for this type of stream
    * @param {Object} opts.propDefaults={} Default `key` to `val` on each object (after map) - see details
    * @param {Object} opts.propMap={} Rename `key` to `val` on each object if only `key` is defined
+   * @param {Array<string>} opts.propRemove=[] Remove these keys from each object (after map)
    * @param {string} opts.tableName=DynamoDB table name
    * 
    * propDefaults are applied after propMap, **when the property value is falsy and not === 0 or false**.
@@ -33,6 +36,7 @@ class DynamoDBWriter extends Writable {
     this.batchSize = opts.batchSize || 25;
     this.propDefaults = opts.propDefaults || {};
     this.propMap = opts.propMap || {};
+    this.propRemove = opts.propRemove || [];
     if (!opts.tableName) throw new Error("opts.tableName (target table) is mandatory");
     this.tableName = opts.tableName;
 
@@ -76,6 +80,9 @@ class DynamoDBWriter extends Writable {
         if (defaultVal !== undefined) chunk[key] = defaultVal;
       }
     }
+
+    // Remove disallowed keys:
+    this.propRemove.forEach(key => (delete chunk[key]));
 
     this._writeBuffer.push({ PutRequest: { Item: chunk } })
     
@@ -205,6 +212,8 @@ function loadProducts(source, ddbTableName, rawUploadDest=null) {
           "IMGURL": "imUrl",
           "GENRE": "genre",
         },
+        // Keep safely under DynamoDB item size limit:
+        propRemove: ["also_buy", "also_viewed", "salesRank"],
       });
 
       writer.on("finish", () => {
