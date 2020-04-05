@@ -1,10 +1,13 @@
+# Python Built-Ins:
 import json
-import boto3
 import os
 
-personalize = boto3.client('personalize')
-personalize_runtime = boto3.client('personalize-runtime')
-dynamodb = boto3.resource('dynamodb')
+# External Dependencies:
+import boto3
+
+personalize = boto3.client("personalize")
+personalize_runtime = boto3.client("personalize-runtime")
+dynamodb = boto3.resource("dynamodb")
 ddb_tablename = os.environ["ddb_tablename"]
 table = dynamodb.Table(ddb_tablename)
 

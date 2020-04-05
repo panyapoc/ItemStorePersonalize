@@ -1,7 +1,10 @@
 #!/bin/bash
 ## deploy-webui.sh
-# Fetch configuration variables from deployed CloudFormation stack, load them to a .env file, build the 
+# Fetch configuration variables from deployed CloudFormation stack, load them to a .env file, build the
 # ReactJS web app with the .env file, and sync the built web assets to the stack's `WebBucketName` S3.
+#
+# NOTE: CloudFormation outputs have now been factored out of hard-build into web UI, so the configuration
+# bundling steps below are not currently needed... Temporarily left in case it gets changed back soon.
 
 STACKNAME=$1
 AWSPROFILE=$2

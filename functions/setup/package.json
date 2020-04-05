@@ -1,18 +1,21 @@
 {
   "name": "setup",
   "version": "1.0.0",
-  "description": "setup ddb",
-  "main": "uploadItems.js",
+  "description": "Load/unload data from web bucket and DynamoDB, for CloudFormation setup/teardown",
+  "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "prestart": "zip -r function.zip .",
-    "start": "aws lambda update-function-code --function-name pocstor-UploadItems --zip-file fileb://function.zip"
+    "start": "aws lambda update-function-code --function-name allstore-UploadItems --zip-file fileb://function.zip"
   },
   "author": "",
-  "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.648.0",
     "cfn-response": "^1.0.1",
-    "csvtojson": "^2.0.10",
+    "csv-parse": "^4.8.8",
+    "jszip": "^3.2.2",
+    "mime-types": "^2.1.26",
+    "split": "^1.0.1",
     "uuid": "^3.3.3"
   }
 }

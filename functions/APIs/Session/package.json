@@ -1,7 +1,7 @@
 {
-  "name": "@personalize-demo/get-item",
+  "name": "@personalize-demo/session",
   "version": "1.0.0",
-  "description": "Lambda to get an item's details from DynamoDB",
+  "description": "",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

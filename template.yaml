@@ -7,6 +7,18 @@ Parameters:
     Default: allstore
     AllowedPattern: "^[a-z]{1,12}"
     ConstraintDescription: The ProjectName can be up to 12 characters, lowercase letters (a-z) only.
+  ProductSource:
+    Description: S3 source for product data (.csv or .json, optionally compressed with .gz suffix)
+    Type: String
+    Default: s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv
+  InteractionSource:
+    Description: (Optional) S3 source for user-product interaction data (.csv or .json, optionally compressed with .gz suffix)
+    Type: String
+    Default: ''
+  WebSource:
+    Description: S3 source for web UI assets
+    Type: String
+    Default: s3://public-personalize-demo-assets-us-east-1/webui.zip
 Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
 Globals:
@@ -271,14 +283,14 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-GetItem'
       Description: Get item by id
-      Handler: getItem.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
       Timeout: 120
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
+          TABLE_NAME: !Ref TableItems
       CodeUri: ./functions/APIs/GetItem/
       Events:
         APIgateway:
@@ -312,14 +324,14 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-ListItems'
       Description: Get list of items by category
-      Handler: listItems.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: nodejs12.x
       Role: !GetAtt DynamoDbRole.Arn
       Timeout: 120
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
+          TABLE_NAME: !Ref TableItems
       CodeUri: ./functions/APIs/ListItems/
       Events:
         APIgateway:
@@ -329,32 +341,38 @@ Resources:
             Method: get
   FunctionUploadItems:
     Type: 'AWS::Serverless::Function'
+    DependsOn:
+      - WebBucket
     Properties:
       FunctionName: !Sub '${ProjectName}-UploadItems'
       Description: Upload sample data for items
-      Handler: uploadItemscsv.handler
+      Handler: main.handler
       Runtime: nodejs12.x
-      Role: !GetAtt DynamoDbRole.Arn
+      Role: !GetAtt LambdaAdminRole.Arn
       Timeout: 900
-      MemorySize: 512
+      MemorySize: 256
       Environment:
         Variables:
-          TABLE_NAME: !Sub '${ProjectName}-Items'
-          S3_BUCKET: products-recommendation-dataset
-          FILE_NAME: dummyitems.json
+          INTERACTIONS_SOURCE: !Ref InteractionSource
+          INTERACTIONS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/interactions'
+          PRODUCTS_SOURCE: !Ref ProductSource
+          PRODUCTS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/items'
+          PRODUCTS_TABLE_NAME: !Ref TableItems
+          WEB_ASSETS_SOURCE: !Ref WebSource
+          WEB_DEPLOYMENT_LOCATION: !Sub 's3://${WebBucket}/web'
       CodeUri: ./functions/setup/
   FunctionGetRecommendations:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-GetRecommendations'
-      CodeUri: ./functions/APIs/getRecommendation/
+      CodeUri: ./functions/APIs/GetRecommendations/
       Description: Get the product recommendations by user
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
-          ddb_tablename: !Sub '${ProjectName}-Items'
+          ddb_tablename: !Ref TableItems
           Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp'
-      Handler: getRecommendation.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -373,14 +391,14 @@ Resources:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-GetRecommendationsByItem'
-      CodeUri: ./functions/APIs/getRecommendationByItem
+      CodeUri: ./functions/APIs/GetRecommendationsByItem
       Description: Get the product recommendations by item
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
-          ddb_tablename: !Sub '${ProjectName}-Items'
+          ddb_tablename: !Ref TableItems
           Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign'
-      Handler: getRecommendationByItem.handler
+      Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
       Timeout: 30
@@ -389,6 +407,27 @@ Resources:
           Type: Api
           Properties:
             Path: /recommendationsitem/{itemid}
+            Method: get
+  FunctionSession:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      FunctionName: !Sub '${ProjectName}-Session'
+      Description: Get session config
+      Handler: main.handler
+      MemorySize: 128
+      Runtime: nodejs12.x
+      Role: !GetAtt LambdaAdminRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          IDENTITY_POOL_ID: !Ref UserEventIdentityPool
+          KINESIS_STREAM_NAME: !Ref PostClickEventStream
+      CodeUri: ./functions/APIs/Session/
+      Events:
+        APIgateway:
+          Type: Api
+          Properties:
+            Path: /session
             Method: get
 
 # ---------- LAMBDA FUNCTIONS for ELASTICSEARCH ---------
@@ -399,7 +438,7 @@ Resources:
     Properties:
       FunctionName: !Sub '${ProjectName}-Search'
       Description: Search for items across item names, authors, and categories
-      Handler: index.handler
+      Handler: main.handler
       MemorySize: 256
       Role: !GetAtt ESSearchRole.Arn
       Runtime: python3.8
@@ -413,14 +452,14 @@ Resources:
       Environment:
         Variables:
           ESENDPOINT: !GetAtt ElasticsearchDomain.DomainEndpoint
-          DDB_TABLE: !Sub '${ProjectName}-Items'
+          DDB_TABLE: !Ref TableItems
           REGION: !Ref 'AWS::Region'
   FunctionSearchRerank:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-Rerank'
       Description: Search then rerank
-      Handler: index.handler
+      Handler: main.handler
       MemorySize: 256
       Role: !GetAtt LambdaAdminRole.Arn
       Runtime: python3.8
@@ -429,7 +468,7 @@ Resources:
       Environment:
         Variables:
           ESENDPOINT: !GetAtt ElasticsearchDomain.DomainEndpoint
-          DDB_TABLE: !Sub '${ProjectName}-Items'
+          DDB_TABLE: !Ref TableItems
           SEARCH_ARN: !GetAtt FunctionSearch.Arn
           RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
       Events:
@@ -599,14 +638,44 @@ Resources:
                   - !Join ['', [!GetAtt TableItems.Arn, '/*']]
 
   # SageMaker notebook
-  NotebookInstance:
-    Type: "AWS::SageMaker::NotebookInstance"
+  NotebookConfig:
+    Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
     Properties:
-      InstanceType: "ml.t2.medium"
+      OnStart:
+        - Content:
+            Fn::Base64: !Sub |
+              #!/bin/bash
+              set -e
+
+              # Install extension for ipywidgets interactivity:
+              sudo -u ec2-user -i <<'EOF'
+              source /home/ec2-user/anaconda3/bin/activate JupyterSystemEnv
+              jupyter labextension install @jupyter-widgets/jupyterlab-manager
+              source /home/ec2-user/anaconda3/bin/deactivate
+              EOF
+
+              # Set env vars
+              touch /etc/profile.d/jupyter-env.sh
+              cat << 'EOF' >> /etc/profile.d/jupyter-env.sh
+              export CF_STACK_NAME='${AWS::StackName}'
+              export LAMBDA_GETITEMRECS_ARN='${FunctionGetRecommendationsByItem.Arn}'
+              export LAMBDA_GETRECS_ARN='${FunctionGetRecommendations.Arn}'
+              export LAMBDA_RERANK_ARN='${FunctionSearchRerank.Arn}'
+              export LAMBDA_POSTCLICK_ARN='${PostClickEventFunction.Arn}'
+              export STAGING_BUCKET='${StagingS3Bucket}'
+              EOF
+              initctl restart jupyter-server --no-wait
+
+  NotebookInstance:
+    Type: AWS::SageMaker::NotebookInstance
+    Properties:
+      InstanceType: 'ml.t2.medium'
+      LifecycleConfigName: !GetAtt NotebookConfig.NotebookInstanceLifecycleConfigName
+      # Otherwise it gets some garbage name by default:
       NotebookInstanceName: !Sub '${ProjectName}-Personalize-Notebook'
       RoleArn: !GetAtt SageMakerIamRole.Arn
       VolumeSizeInGB: 20
-      DefaultCodeRepository: https://github.com/panyapoc/ItemStorePersonalize
+      DefaultCodeRepository: https://github.com/apac-ml-tfc/personalize-demo
 
   PostClickEventStream:
     Type: AWS::Kinesis::Stream
@@ -614,12 +683,12 @@ Resources:
         Name: !Sub '${ProjectName}-Clickstream'
         RetentionPeriodHours: 24
         ShardCount: 1
-  PostClickEventFuction:
+  PostClickEventFunction:
     Type: 'AWS::Serverless::Function'
     Properties:
       FunctionName: !Sub '${ProjectName}-PostClickEvent'
-      Description: PostClickEvent fucntion
-      Handler: index.handler
+      Description: PostClickEvent function
+      Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
       Role: !GetAtt LambdaAdminRole.Arn
@@ -694,7 +763,7 @@ Outputs:
     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
   AllStoreWebUI:
     Description: "AllStore Website"
-    Value: !GetAtt WebCDN.DomainName
+    Value: !Sub 'https://${WebCDN.DomainName}/'
   WebBucketName:
     Value: !Ref WebBucket
     Description: S3 Bucket for web asset storage
@@ -712,7 +781,7 @@ Outputs:
     Value: !GetAtt FunctionGetRecommendations.Arn
   PostClickEventArn:
     Description: "PostClickEvent_arn"
-    Value: !GetAtt PostClickEventFuction.Arn
+    Value: !GetAtt PostClickEventFunction.Arn
   WebUIStreamName:
     Description: "WebUI Config kinesis.StreamName"
     Value: !Ref PostClickEventStream
