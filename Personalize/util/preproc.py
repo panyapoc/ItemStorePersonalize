@@ -1,6 +1,6 @@
 """UCSD data pre-(before the workshop)-processing utilities
 
-See the 
+See the "UCSD Preprocessing.ipynb" notebook for more details on the use case
 """
 
 # Python Built-Ins:
