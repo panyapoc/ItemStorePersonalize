@@ -1,6 +1,6 @@
 import React from "react";
 import { Html5Entities } from "html-entities";
-import "./storeItem.css";
+import "./storeItem.scss";
 
 const htmlEntities = new Html5Entities();
 

@@ -2,7 +2,7 @@ import React from "react";
 import AWS from "aws-sdk";
 import { Product } from "../storeItem/storeItem";
 import getConfig from "../../config";
-import "./productDetail.css";
+import "./productDetail.scss";
 import queryString from "query-string";
 import RecommendationList from "../recommendationList/recommendationList";
 import {

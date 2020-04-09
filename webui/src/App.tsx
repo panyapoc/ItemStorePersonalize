@@ -7,7 +7,7 @@ import notFound from "./modules/notFound/notFound";
 import ProductDetail from "./modules/productDetail/productDetail";
 import SearchBar from "./modules/searchBar/searchBar";
 import uuid, { v4 as uuidv4 } from 'uuid';
-import "./App.css";
+import "./App.scss";
 
 const userList = [
   {
@@ -107,7 +107,7 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
                 <a href='/'>
                   <span><img
                   alt=""
-                  src="../img/shop.png"
+                  src="../img/shop.svg"
                   width="50"
                   height="50"
                   className="d-inline-block align-top"

@@ -2,7 +2,7 @@ import React from "react";
 import ProductRow from "../storeItem/storeItem";
 import { Product } from "../storeItem/storeItem";
 import getConfig from "../../config";
-import "./recommendationList.css";
+import "./recommendationList.scss";
 
 import {
   withRouter,

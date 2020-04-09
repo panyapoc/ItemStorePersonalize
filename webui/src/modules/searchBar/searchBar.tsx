@@ -1,5 +1,5 @@
 import React from "react";
-import "./searchBar.css";
+import "./searchBar.scss";
 import { Redirect } from "react-router";
 import {
   withRouter,

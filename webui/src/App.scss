@@ -1,10 +1,12 @@
+@import "./theme";
+
 .App {
-  margin-top: 15px;
+  padding-top: 15px;
 }
 
 .navbar-brand {
   height: auto;
-  color: #f69827 !important;
+  color: $col-accent-1 !important;
 }
 
 .product{
@@ -39,7 +41,7 @@
   margin-top: 20px;
 }
 .shopping-icon-container {
-  background-color: #f69827;
+  background-color: $col-accent-1;
   padding: 2px 12px 0 12px;
   border-radius: 14px;
   margin-right: -24px;

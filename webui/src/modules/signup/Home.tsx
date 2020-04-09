@@ -10,7 +10,7 @@ import React, { Component } from "react";
 // import { CategoryGalleryTeaser } from "../category/CategoryGalleryTeaser";
 // import { FriendsBought } from "../friends/FriendsBought";
 // import { LinkContainer } from "react-router-bootstrap";
-import "./home.css";
+import "./home.scss";
 
 interface HomeProps {
   isAuthenticated: boolean;
