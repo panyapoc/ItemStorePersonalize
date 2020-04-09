@@ -40,10 +40,17 @@ def handler(event, context):
     else:
         response["results"] = []
         response["warning"] = (
-            "Product recommendations have not yet been enabled: First train a model and deploy a campaign in "
-            "Amazon Personalize, then set the CAMPAIGN_ARN environment variable on your GetRecommendations "
-            "Lambda function to use the model on the website!"
+            "Product recommendations have not yet been enabled: First train a model and deploy a campaign "
+            "in Amazon Personalize, then set the CAMPAIGN_ARN environment variable on your "
+            "GetRecommendations Lambda function to use the model on the website!"
         )
+        try:
+            # May as well try to just present *some* products - we'll take whatever a DynamoDB scan gives us:
+            scan = table.scan(Limit=30)
+            response["results"] = scan["Items"]
+            response["warning"] += "\n\nResults shown here are a simple DynamoDB scan."
+        except:
+            response["results"] = []
 
     return {
         "statusCode": 200,
