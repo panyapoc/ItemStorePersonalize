@@ -39,10 +39,10 @@ def handler(event, context):
         except:
             userId = None
 
-        if userId != None and len(res_list) != 0:
+        if userId != None and len(raw_list) != 0:
             rerank = personalize_runtime.get_personalized_ranking(
                 campaignArn=RANKING_ARN,
-                inputList=res_list,
+                inputList=raw_list,
                 userId=userId
             )
             reranked_list = [item["itemId"] for item in rerank["personalizedRanking"]]
