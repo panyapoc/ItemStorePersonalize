@@ -59,6 +59,9 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: '172.31.0.0/16'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-VPC'
   ItemStoreInternetGateway:
     Type: AWS::EC2::InternetGateway
   ItemStoreAttachGateway:
@@ -71,14 +74,21 @@ Resources:
     Properties:
       CidrBlock: !Select [0, !Cidr [!GetAtt ItemStoreVPC.CidrBlock, 3, 8]]
       VpcId: !Ref ItemStoreVPC
-      # The following examples show valid patterns for using nested intrinsic functions using short form YAML. You can't nest short form functions consecutively, so a pattern like !GetAZs !Ref is invalid.
+      # The following examples show valid patterns for using nested intrinsic functions using short form YAML
+      # ...You can't nest short form functions consecutively, so a pattern like !GetAZs !Ref is invalid.
       AvailabilityZone: !Select [0, Fn::GetAZs: !Ref 'AWS::Region']
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-Subnet1'
   ItemStoreSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       CidrBlock: !Select [1, !Cidr [!GetAtt ItemStoreVPC.CidrBlock, 3, 8]]
       VpcId: !Ref ItemStoreVPC
       AvailabilityZone: !Select [1, Fn::GetAZs: !Ref 'AWS::Region']
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-Subnet2'
   ItemStoreVPCRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -233,6 +243,8 @@ Resources:
                   - !Join ['',[!GetAtt TableItems.Arn,'/stream/*']]
   ElasticsearchDomain:
     Type: 'AWS::Elasticsearch::Domain'
+    DependsOn:
+      - ItemStoreSubnet1
     Properties:
       DomainName: !Sub '${ProjectName}-domain'
       ElasticsearchVersion: '7.1'
@@ -243,7 +255,7 @@ Resources:
         InstanceType: t2.small.elasticsearch
       VPCOptions:
         SubnetIds:
-          - Ref: ItemStoreSubnet1
+          - !Ref ItemStoreSubnet1
       EBSOptions:
         EBSEnabled: true
         Iops: 0
