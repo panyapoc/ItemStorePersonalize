@@ -80,6 +80,28 @@ function productDynamoDbTransform(item) {
     }
   }
 
+  // Set up item images:
+  if (item.image && !item.imUrl) {
+    const candidate = Array.isArray(item.image) ? item.image[0] : item.image
+    if (typeof candidate === "string") {
+      // If the URL looks like it's been thumbnailed, remove the ._******_. part.
+      // This RegEx captures everything *except* the part we want to chop out in groups:
+      const reMatch = /^(.*images-\w+\.ssl-images-amazon.com\/.*\.)(?:_.*_.)(jpg|png)$/.exec(candidate);
+      if (reMatch) {
+        // ...So if it matches, we can just smush the groups back together into a non-thumbnail URL:
+        // (A RegExp match is an array-like object with element 0 = the entire match, and subsequent elements
+        // = each captured group. It doesn't have its own slice method, but Array's works on it just fine)
+        item.imUrl = Array.prototype.slice.apply(reMatch, [1]).join("");
+      } else {
+        // Some other kind of image URL - leave it alone
+        item.imUrl = candidate;
+      }
+    } else {
+      // No idea what this would be
+      console.warn(`[${RESTYPE}] Item ID ${item.asin} has weird 'image' value type: ignoring`);
+    }
+  }
+
   return item;
 }
 
@@ -510,4 +532,5 @@ function handler(event, context, callback) {
 module.exports = {
   handler,
   resourceType: "Custom::ProductData",
+  loadProducts,
 };
