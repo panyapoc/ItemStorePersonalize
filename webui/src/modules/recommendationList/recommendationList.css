@@ -78,3 +78,12 @@ div.itemsForUser {
 .itemsForUser div {
   padding: 10px;
 }
+
+.warning {
+  background-color: lightgoldenrodyellow;
+  border-radius: 4px;
+  border: 1px solid darkgoldenrod;
+  color: darkgoldenrod;
+  margin-top: 15px;
+  margin-bottom: 15px;
+}

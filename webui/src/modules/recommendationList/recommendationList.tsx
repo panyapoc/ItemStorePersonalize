@@ -30,6 +30,7 @@ interface RecommendationListState {
   isLoading: boolean;
   items: Product[];
   mode: string;
+  warning: string | undefined;
 }
 
 export class RecommendationList extends React.Component<
@@ -46,7 +47,8 @@ export class RecommendationList extends React.Component<
       userId: props.userId,
       isLoading: true,
       items: [],
-      mode: RecommendationMode.Normal
+      mode: RecommendationMode.Normal,
+      warning: undefined,
     };
 
     configP.then(config => {
@@ -97,9 +99,12 @@ export class RecommendationList extends React.Component<
     fetch(getUrl)
       .then(response => response.json())
       .then(data => {
-        if (!fetchLess)
-          this.setState({ isLoading: false, items: data.slice() });
-        else this.setState({ isLoading: false, items: data.slice(0, 10) });
+        const results = data?.results || [];
+        this.setState({
+          isLoading: false,
+          items: fetchLess ? results.slice(0, 10) : results.slice(),
+          warning: data?.warning,
+        });
       });
   }
 
@@ -138,7 +143,7 @@ export class RecommendationList extends React.Component<
   }
 
   createTable = () => {
-    let listItems = this.state.items;
+    const listItems = this.state.items || [];
     let userid = this.props.userId;
     var xs: number ,md: number , lg : number,sm : number
     if (this.props.mode === RecommendationMode.Normal){
@@ -174,46 +179,22 @@ export class RecommendationList extends React.Component<
       console.log(e)
     }
 
-// Tavle version
-    // if (listItems != null) {
-    //   for (let i = 0; i < listItems.length; i++) {
-    //     let product = listItems[i];
-    //     children.push(
-    //       <td key={product.asin}>
-    //         {" "}
-    //         <ProductRow
-    //           uid={this.props.userId}
-    //           key={product.asin}
-    //           title={product.title}
-    //           imUrl={product.imUrl}
-    //           productId={product.asin}
-    //         ></ProductRow>
-    //       </td>
-    //     );
-    //     ++currentCol;
-    //     if (currentCol >= maxCols) {
-    //       table.push(<tr key={uid(product)}>{children}</tr>);
-    //       children = [];
-    //       currentCol = 0;
-    //     }
-    //   }
-    //   if (children.length > 0) {
-    //     table.push(<tr key={uid(Date.now())}>{children}</tr>);
-    //     children = [];
-    //   }
-    // }
-
     return productcat;
   };
 
   render() {
     let currentClassName;
-    let productlist;
-
     if (this.props.mode === RecommendationMode.Normal){
       currentClassName = "recommend";
       return (
         <div className={currentClassName}>
+          {
+            this.state.warning
+              ? <div className="warning">
+                <i className="glyphicon glyphicon-warning-sign"></i> {this.state.warning}
+              </div>
+              : null
+          }
           {this.createTable()}
         </div>
       );
@@ -222,9 +203,16 @@ export class RecommendationList extends React.Component<
       currentClassName = "similar";
       return (
         <div className={currentClassName}>
-            <div className="container testimonial-group">
-              <div className="row text-center">
-                {this.createTable()}
+          {
+            this.state.warning
+              ? <div className="warning">
+                <i className="glyphicon glyphicon-warning-sign"></i> {this.state.warning}
+              </div>
+              : null
+          }
+          <div className="container testimonial-group">
+            <div className="row text-center">
+              {this.createTable()}
             </div>
           </div>
         </div>
@@ -234,9 +222,16 @@ export class RecommendationList extends React.Component<
       currentClassName = "itemsForUser";
       return (
         <div className={currentClassName}>
-            <div className="container testimonial-group">
-              <div className="row text-center">
-                {this.createTable()}
+          {
+            this.state.warning
+              ? <div className="warning">
+                <i className="glyphicon glyphicon-warning-sign"></i> {this.state.warning}
+              </div>
+              : null
+          }
+          <div className="container testimonial-group">
+            <div className="row text-center">
+              {this.createTable()}
             </div>
           </div>
         </div>
