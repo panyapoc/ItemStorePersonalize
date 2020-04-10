@@ -1,67 +1,58 @@
 @import "./theme";
+@import "~bootstrap";
 
 .App {
-  padding-top: 15px;
+  padding-top: $global-margin;
 }
 
+.navbar {
+  margin-bottom: $global-margin;
+
+  .userstate {
+    font-size: 0.9em;
+    padding: 15px;
+    margin-right: 20px;
+  }
+}
+
+// Stop navbar height getting compressed on small viewports (since we have big header):
 .navbar-brand {
   height: auto;
-  color: $col-accent-1 !important;
 }
 
-.product{
-  height: 350px;
-  max-height: 350px !important;
-  margin-bottom: 10px;
-}
+.navbar-brand-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
 
-/* .loginAs{
-  background: none !important;
-} */
-
-.itemsForUser div,.similar div {
-  padding: 0 0 0 0;
-}
-
-.userstate{
-  padding: 15px;
-  margin-right: 20px;
-}
-
-.imgbox{
-  height: 350px;
-  line-height: 350px;
-}
-
-.App .white {
-  color: #fff;
+  .brand-name {
+    display: block;
+    font-weight: bold;
+    color: $col-accent-1;
+  }
+  
+  .brand-tagline {
+    display: block;
+    font-size: 0.8em;
+  }
+  
+  .brand-img {
+    padding-right: 10px;
+  }
 }
 
 .navbar-toggle{
   margin-top: 20px;
 }
-.shopping-icon-container {
-  background-color: $col-accent-1;
-  padding: 2px 12px 0 12px;
-  border-radius: 14px;
-  margin-right: -24px;
-}
 
-.shopping-icon-container .count {
-  margin: 0 0 0 4px;
-}
+.testimonial-group {
+  >.row {
+    overflow-x: auto;
+    white-space: nowrap;
 
-
-.testimonial-group > .row {
-  overflow-x: auto;
-  white-space: nowrap;
-}
-.testimonial-group > .row > .col-xs-12 {
-  display: inline-block;
-  float: none;
-}
-
-.itemTitle{
-  white-space: initial;
-  width: 290px;
+    >.col-xs-12 {
+      display: inline-block;
+      float: none;
+    }
+  }
 }

@@ -100,28 +100,36 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
     return (
       <div className="App container">
 
-        <Container>
-        <Navbar collapseOnSelect>
+        <Navbar collapseOnSelect className="row">
           <Navbar.Header>
               <Navbar.Brand>
-                <a href='/'>
-                  <span><img
-                  alt=""
-                  src="../img/shop.svg"
-                  width="50"
-                  height="50"
-                  className="d-inline-block align-top"
-                /></span>{' '}
-                The All Store - Great Prices, Huge Collection</a>
+                <a className="navbar-brand-link" href='/'>
+                  <div className="brand-img"><img
+                    alt=""
+                    src="../img/shop-squid.svg"
+                    width="50"
+                    height="50"
+                    className="d-inline-block align-top"
+                  /></div>
+                  <div className="brand-text">
+                    <span className="brand-name">The All Store</span>
+                    <span className="brand-tagline">Great Prices, Huge Collection!</span>
+                  </div>
+                </a>
               </Navbar.Brand>
               <Navbar.Toggle />
             </Navbar.Header>
           <Navbar.Collapse>
             <Nav className="userstate" pullRight>
-              <NavItem>
-                {`SessionID : ${this.state.SID}`}
+              <NavItem className="session-id">
+                {`Session ID: ${this.state.SID}`}
               </NavItem>
-              <NavDropdown className='loginAs' title={'loginAs: '+this.state.userSelectedName} id="basic-nav-dropdown" onSelect={this.renderSelectOptions}>
+              <NavDropdown
+                className="login-dropdown"
+                title={"Log In As: " + this.state.userSelectedName}
+                id="basic-nav-dropdown"
+                onSelect={this.renderSelectOptions}
+              >
                 {userList.map((item, key) =>
                   <MenuItem id={`user${key}`} eventKey={key}>{item.firstName +' '+item.lastName }</MenuItem>
                 )}
@@ -129,39 +137,50 @@ class App extends Component<RouteComponentProps<AppProps>, AppState> {
               </NavDropdown>
             </Nav>
           </Navbar.Collapse>
-          </Navbar>
-        </Container>
+        </Navbar>
         <Router>
             <Switch>
               <Route exact path="/">
-                <SearchBar
-                  userId={this.state.selectedUser?.id}
-                  searchid={undefined}>
-                </SearchBar>
-                <RecommendationList
-                  mode="Normal"
-                  userId={this.state.selectedUser?.id}>
-                </RecommendationList>
+                <div className="row">
+                  <SearchBar
+                    userId={this.state.selectedUser?.id}
+                    searchid={undefined}>
+                  </SearchBar>
+                </div>
+                <div className="row">
+                  <RecommendationList
+                    mode="Normal"
+                    userId={this.state.selectedUser?.id}>
+                  </RecommendationList>
+                </div>
               </Route>
               <Route path="/product/:id">
-                <SearchBar
-                  userId={this.state.selectedUser?.id}
-                  searchid={undefined}>
-                </SearchBar>
-                <ProductDetail
-                  uid={this.state.selectedUser?.id}
-                  id={"2"}
-                ></ProductDetail>
+                <div className="row">
+                  <SearchBar
+                    userId={this.state.selectedUser?.id}
+                    searchid={undefined}>
+                  </SearchBar>
+                </div>
+                <div className="row">
+                  <ProductDetail
+                    uid={this.state.selectedUser?.id}
+                    id={"2"}
+                  ></ProductDetail>
+                </div>
               </Route>
               <Route exact path="/search/:searchid">
-                <SearchBar
-                  userId={this.state.selectedUser?.id}
-                  searchid={undefined}
-                ></SearchBar>
-                <RecommendationList
-                  mode="Normal"
-                  userId={this.state.selectedUser?.id}
-                ></RecommendationList>
+                <div className="row">
+                  <SearchBar
+                    userId={this.state.selectedUser?.id}
+                    searchid={undefined}
+                  ></SearchBar>
+                </div>
+                <div className="row">
+                  <RecommendationList
+                    mode="Normal"
+                    userId={this.state.selectedUser?.id}
+                  ></RecommendationList>
+                </div>
               </Route>
               <Route path="*" component={notFound} />
             </Switch>

@@ -1,4 +1,5 @@
 import React from "react";
+import { Alert } from "react-bootstrap";
 import ProductRow from "../storeItem/storeItem";
 import { Product } from "../storeItem/storeItem";
 import getConfig from "../../config";
@@ -160,6 +161,15 @@ export class RecommendationList extends React.Component<
     }
     let productcat: JSX.Element[] = [];
 
+    if (this.state.isLoading) {
+      productcat.push(
+        <Alert key={-1} bsStyle="info">
+          <i className="glyphicon glyphicon-repeat fast-right-spinner"></i>{" "}
+          Loading...
+        </Alert>
+      )
+    }
+
     try {
       listItems.forEach(function(item, index) {
         productcat.push(
@@ -184,49 +194,35 @@ export class RecommendationList extends React.Component<
 
   render() {
     let currentClassName;
-    if (this.props.mode === RecommendationMode.Normal){
+    if (this.props.mode === RecommendationMode.Normal) {
       currentClassName = "recommend";
       return (
         <div className={currentClassName}>
           {
             this.state.warning
-              ? <div className="warning">
+              ? <Alert bsStyle="warning">
                 <i className="glyphicon glyphicon-warning-sign"></i> {this.state.warning}
-              </div>
+              </Alert>
               : null
           }
           {this.createTable()}
         </div>
       );
     }
-    else if (this.props.mode === RecommendationMode.SimilarItems) {
-      currentClassName = "similar";
-      return (
-        <div className={currentClassName}>
-          {
-            this.state.warning
-              ? <div className="warning">
-                <i className="glyphicon glyphicon-warning-sign"></i> {this.state.warning}
-              </div>
-              : null
-          }
-          <div className="container testimonial-group">
-            <div className="row text-center">
-              {this.createTable()}
-            </div>
-          </div>
-        </div>
-      );
-    }
     else {
-      currentClassName = "itemsForUser";
+      if (this.props.mode === RecommendationMode.SimilarItems) {
+        currentClassName = "similar";
+      } else {
+        currentClassName = "itemsForUser";
+      }
+
       return (
         <div className={currentClassName}>
           {
             this.state.warning
-              ? <div className="warning">
+              ? <Alert bsStyle="warning">
                 <i className="glyphicon glyphicon-warning-sign"></i> {this.state.warning}
-              </div>
+              </Alert>
               : null
           }
           <div className="container testimonial-group">

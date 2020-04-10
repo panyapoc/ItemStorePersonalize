@@ -1,4 +1,5 @@
 import React from "react";
+import { Alert } from "react-bootstrap";
 import AWS from "aws-sdk";
 import { Product } from "../storeItem/storeItem";
 import getConfig from "../../config";
@@ -88,6 +89,10 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
         .then(response => response.json())
         .then(data => {
           this.setState({ isLoading: false, product: data });
+        })
+        .catch(err => {
+          this.setState({ isLoading: false });
+          console.error(err);
         });
     } catch (e) {
       this.setState({ isLoading: false });
@@ -104,6 +109,10 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
             showAMZNLink: data.Items.length > 0,
             description: data.Items
           });
+        })
+        .catch(err => {
+          if (this.state.isLoading) this.setState({ isLoading: false });
+          console.error(err);
         });
     } catch (e) {
       if (this.state.isLoading) this.setState({ isLoading: false });
@@ -114,9 +123,10 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
   render() {
     if (this.state.isLoading)
       return (
-        <div>
-          <h1>Loading....</h1>
-        </div>
+        <Alert bsStyle="info">
+          <i className="glyphicon glyphicon-repeat fast-right-spinner"></i>{" "}
+          Loading...
+        </Alert>
       );
     else {
       const values = queryString.parse(this.props.location.search);
@@ -127,9 +137,7 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
         if (uid !== null) {
           recommendedForUser = (
             <div className="itemsForUser">
-              <div>
-                <h3>Recommended For You</h3>
-              </div>
+              <h3>Recommended For You</h3>
               <div>
                 <RecommendationList
                   mode="ItemsForUser"
@@ -179,9 +187,7 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
               </tbody>
             </table>
             <div className="similar">
-              <div>
-                <h3>Similar Items</h3>
-              </div>
+              <h3>Similar Items</h3>
               <div>
                   <RecommendationList
                   mode="SimilarItems"
@@ -193,12 +199,16 @@ class ProductDetails extends React.Component<RouteComponentProps<ProductDetailsP
             {recommendedForUser}
           </div>
         );
-      } else
+      } else {
         return (
           <div>
-            <h1>Could not load product.</h1>
+            <Alert bsStyle="danger">
+              <i className="glyphicon glyphicon-exclamation-sign"></i>{" "}
+              Failed to load product
+            </Alert>
           </div>
         );
+      }
     }
   }
 }

@@ -65,22 +65,21 @@ class SearchBar extends React.Component<
 
     return (
       <form className="searchform mainsearch">
-        <div className="row">
-          <div className="col-md-8 search-padding">
+          <div className="col-md-8 col-md-push-2">
             <div className="input-group">
-              <div className="input-group-addon addon-black no-radius">
+              <div className="input-group-addon search-label">
                 Search
               </div>
               <input
                 type="text"
-                className="form-control no-radius"
+                className="form-control"
                 id="txtSearch"
                 value={this.state.value}
                 onChange={this.handleChange}
               />
               <div className="input-group-btn">
                 <button
-                  className="btn btn-orange no-radius"
+                  className="btn btn-orange"
                   onClick={this.onSearch}
                 >
                   <span className="glyphicon glyphicon-search"></span>
@@ -89,7 +88,6 @@ class SearchBar extends React.Component<
               </div>
             </div>
           </div>
-        </div>
       </form>
     );
   }

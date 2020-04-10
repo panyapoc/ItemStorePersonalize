@@ -1,7 +1,25 @@
+@import "../../theme";
+
 .productDetail td {
   border: 0px;
   padding: 10px;
 }
 .productDetail span {
   text-align: justify;
+}
+
+.itemsForUser {
+  h3 {
+    border-top: 1px solid $col-dark-primary;
+    padding-top: 10px;
+    color: $col-dark-primary;
+  }
+}
+
+.similar {
+  h3 {
+    border-top: 1px solid $col-dark-primary;
+    padding-top: 10px;
+    color: $col-dark-primary;
+  }
 }

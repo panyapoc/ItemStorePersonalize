@@ -1,52 +1,19 @@
-.search-padding {
-  padding: 0 25px 0 25px;
-}
+@import "../../theme";
 
-.title-padding {
-  padding: 5px 0 5px 0px;
-  margin: 0;
-  text-align: center;
-}
+.searchform {
+  // Ensnure the div wraps around its content:
+  overflow: hidden;
 
-.no-radius {
-  border-radius: 0 !important;
-}
-
-.no-margin {
-  margin: 0 24px 0 0 !important;
+  .btn-orange {
+    background-color: $col-accent-1;
+    border-color: darken($col-accent-1, 20%);
+  }
 }
 
 .mainsearch {
-  background-color: #4a4a4a;
-  padding: 10px 0 10px 10px;
-}
-
-.btn-orange {
-  background-color: #f69827;
-}
-
-.no-margin-top {
-  margin-top: 0px !important;
-}
-
-/*test color*/
-
-.orange {
-  color: #f69827;
-}
-
-.white {
-  color: #ffffff;
-}
-
-.addon-black {
-  color: #ffffff !important;
-  background-color: #000 !important;
-  border: #000 !important;
-  font-weight: 200 !important;
-}
-
-.nav > li > a:hover,
-.nav > li > a:focus {
-  background-color: transparent !important;
+  border-radius: 4px; // Same as Bootstrap navbar
+  background-color: $col-dark-primary;
+  padding-top: $global-margin;
+  padding-bottom: $global-margin;
+  margin-bottom: $global-margin;
 }

@@ -1,89 +1,18 @@
-.recommend table {
-  border: 1px;
-  display: block;
-}
+@import "../../theme";
 
-.recommend tr {
-  vertical-align: middle;
-}
-
-.recommend td {
-  border: 0px;
-  width: 33%;
-  padding: 10px;
-  text-align: center;
-
-  max-height: 250px;
-}
-.recommend tr {
-  vertical-align: middle;
-}
-.recommend div {
-  overflow-x: auto;
-  overflow-y: hidden;
-  max-height: 300px;
-
-  text-align: center;
-  vertical-align: middle;
-}
-
-.recommend td img {
-  display: inline-block;
-
-  max-width: none;
-}
-
-.similar td img {
-  max-width: 150px;
-}
-
-.similar td {
-  max-width: 200px;
-  text-align: center;
-  vertical-align: center;
+.similar {
+  max-width: 100%;
+  overflow-x: scroll;
+  overflow: -moz-scrollbars-horizontal;
 }
 
 .similar span {
   vertical-align: top;
 }
 
-.similar div {
-  padding: 10px;
-}
-
-div.similar {
+.itemsForUser {
   max-width: 100%;
-  padding: 10px;
   overflow-x: scroll;
   overflow: -moz-scrollbars-horizontal;
-}
-
-.itemsForUser td img {
-  max-width: 150px;
-}
-.itemsForUser td {
-  max-width: 200px;
-  text-align: center;
-  vertical-align: center;
-}
-
-div.itemsForUser {
-  max-width: 100%;
-  overflow-x: scroll;
   padding-bottom: 20px;
-
-  overflow: -moz-scrollbars-horizontal;
-}
-
-.itemsForUser div {
-  padding: 10px;
-}
-
-.warning {
-  background-color: lightgoldenrodyellow;
-  border-radius: 4px;
-  border: 1px solid darkgoldenrod;
-  color: darkgoldenrod;
-  margin-top: 15px;
-  margin-bottom: 15px;
 }
