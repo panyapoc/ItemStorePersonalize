@@ -3,16 +3,15 @@
  */
 
 // NodeJS Built-Ins:
-const { Transform, Writable } = require("stream");
-const { createGunzip } = require("zlib"); 
+const { Transform } = require("stream");
 
 // External Dependencies:
 const AWS = require("aws-sdk");
 const response = require("cfn-response");
-const CsvParse = require("csv-parse");
-const split = require("split");
 
 // Local Dependencies:
+const { getParseChain } = require("../util/data");
+const DynamoDBWriter = require("../util/ddb-writer");
 const { timeOutNativePromise } = require("../util/promises");
 
 const lambdaClient = new AWS.Lambda({
@@ -135,173 +134,6 @@ class ShardedDiscarder extends Transform {
   }
 }
 
-/**
- * Writable object stream implementation to upload objects to DynamoDB
- * 
- * Includes a few utilities for transforming objects on the way through.
- */
-class DynamoDBWriter extends Writable {
-  /**
-   * @param {Object} opts Extends & amends opts of NodeJS stream.Writable as follows
-   * @param {number} opts.batchSize=25 Number of records that should be written to DDB at a time
-   * @param {boolean} opts.objectMode=true Forced=true as required for this type of stream
-   * @param {number} opts.progressGranularity=500 Print logs when you've uploaded >=N items since last
-   * @param {Object} opts.propDefaults={} Default `key` to `val` on each object (after map) - see details
-   * @param {string} opts.tableName=DynamoDB table name
-   * @param {(Object) => Object} opts.transform= Optional transformation function to apply to each object
-   * 
-   * propDefaults are applied after transform, **when the property value is falsy and not === 0 or false**.
-   * This includes missing, undefined, null, and ""... and was the best for our use case (as csv-parse
-   * produces "" for quoted empty fields), but appreciate that it's a weird design choice.
-   */
-  constructor(opts) {
-    opts = opts || {};
-    opts.objectMode = true;
-    super(opts);
-
-    this.batchSize = opts.batchSize || 25;
-    this.progressGranularity = opts.progressGranularity === 0 ? 0 : (opts.progressGranularity || 500);
-    this.propDefaults = opts.propDefaults || {};
-    if (!opts.tableName) throw new Error("opts.tableName (target table) is mandatory");
-    this.tableName = opts.tableName;
-    this.transformFn = opts.transform || ((item) => (item));
-
-    this._docClient = new AWS.DynamoDB.DocumentClient({ convertEmptyValues: true });
-    this._writeBuffer = [];
-
-    // Track a total number of items written to DynamoDB:
-    this.itemsWritten = 0;
-    this._itemsWrittenSinceLog = 0;
-    // ...And a dictionary from default property IDs to number of entries with value missing:
-    this.missingValues = Object.keys(this.propDefaults).reduce(
-      (acc, next) => {
-        acc[next] = 0;
-        return acc;
-      },
-      {}
-    );
-  }
-
-  /**
-   * Standardize item structure (whatever source it might have come from) and write it to DynamoDB
-   * @param {Object} chunk 
-   * @param {string} _ Encoding (standard for writable stream) is not used in object-mode streams
-   * @param {function} callback To be called when chunk processing is complete
-   */
-  _write(chunk, _, callback) {
-    // User transform first:
-    chunk = this.transformFn(chunk);
-
-    // Fill in default values:
-    for (let key in this.propDefaults) {
-      // (See constructor docstring regarding this exact condition)
-      if (!chunk[key] && (chunk[key] !== 0) && (chunk[key] !== false)) {
-        ++this.missingValues[key];
-        const defaultVal = this.propDefaults[key];
-        if (defaultVal !== undefined) chunk[key] = defaultVal;
-      }
-    }
-
-    this._writeBuffer.push({ PutRequest: { Item: chunk } })
-    
-    const bufferLen = this._writeBuffer.length;
-    if (bufferLen >= this.batchSize) {
-      const writeParams = {
-        RequestItems: {
-          [this.tableName]: this._writeBuffer,
-        },
-      };
-      // Synchronously clear the writeBuffer, before starting our upload:
-      // (Not that any other requests should be coming through until we callback)
-      this._writeBuffer = [];
-
-      return this._docClient.batchWrite(writeParams).promise()
-        .then(() => {
-          this.itemsWritten += bufferLen;
-          this._itemsWrittenSinceLog += bufferLen;
-          if (this._itemsWrittenSinceLog >= this.progressGranularity) {
-            // (Nobody likes scrolling through logs for days)
-            console.log(
-              `[${
-                RESTYPE
-              }] Wrote ${
-                this._itemsWrittenSinceLog
-              } records to DynamoDB (${
-                this.itemsWritten
-              } total)`
-            );
-            this._itemsWrittenSinceLog = 0;
-          }
-          callback();
-        })
-        .catch((err) => {
-          console.error(`[${RESTYPE}] Error in DynamoDB write`, err);
-          console.error(`[${RESTYPE}] Write request:`, writeParams);
-          callback(err || new Error("Unknown error in DynamoDB write"));
-        });
-    } else {
-      callback();
-    }
-  }
-}
-
-/**
- * Create a chain of transform streams that transform raw file bytes into one object per record.
- * @param {string} source URI of the data file
- * @returns {{ compressed: boolean, fileType: string, streams: Array<stream.Transform>}}
- * 
- * Supports .csv with header row, or newline-delimited .json... Either with optional .gz suffix for
- * compression.
- * 
- * Pipe your raw file input to the first element of `streams`, and pipe the last element into your sink.
- */
-function getParseChain(source) {
-  const ixLastDot = source.lastIndexOf(".");
-  if (ixLastDot < 0) throw new Error("source filename has no file extension to infer file type");
-
-  const ext = source.substring(ixLastDot + 1).toLowerCase();
-  const compressed = ext === "gz";
-
-  let fileType;
-  const streams = [];
-  if (compressed) {
-    // (The following won't throw errors even if ixLastDot was -1:)
-    const ixSecondDot = source.substring(0, ixLastDot).lastIndexOf(".");
-    fileType = source.substring(ixSecondDot + 1, ixLastDot).toLowerCase();
-    streams.push(createGunzip());
-  } else {
-    fileType = ext;
-  }
-
-  switch (fileType) {
-    case "csv":
-      // columns=true produces objects instead of the default (arrays)
-      streams.push(CsvParse({ columns: true }));
-      break;
-    case "json":
-      // `split` usually just splits a stream by newlines, but can transform each line too:
-      // We need to ignore any empty lines to prevent errors
-      streams.push(split(
-        (input) => (input ? JSON.parse(input) : null)
-      ));
-      break;
-    default:
-      throw new Error(`No parser implemented for file type '.${fileType}'`);
-  }
-
-  // Connect the stages up (if there are more than one):
-  streams.forEach((s, i) => {
-    if ((streams.length - i) > 1) {
-      s.pipe(streams[i + 1]);
-    }
-  });
-
-  return {
-    compressed,
-    fileType,
-    streams,
-  };
-}
 
 /**
  * Stream product data from S3 source file into this stack's DynamoDB items table
