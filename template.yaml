@@ -11,6 +11,10 @@ Parameters:
     Description: S3 source for product data (.csv or .json, optionally compressed with .gz suffix)
     Type: String
     Default: s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv
+  UserSource:
+    Description: S3 source for user data (.csv or .json, optionally compressed with .gz suffix)
+    Type: String
+    Default: s3://public-personalize-demo-assets-us-east-1/data/users_Sports_and_Outdoors.json
   WebSource:
     Description: S3 source for web UI assets
     Type: String
@@ -35,6 +39,7 @@ Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
   UseInteractionSource: !Not [!Equals [!Ref InteractionSource, '']]
   UseProductSource: !Not [!Equals [!Ref ProductSource, '']]
+  UseUserSource: !Not [!Equals [!Ref UserSource, '']]
   UseExistingBaseCampaign: !Not [!Equals [!Ref ExistingBaseCampaignName, '']]
   UseExistingSearchCampaign: !Not [!Equals [!Ref ExistingSearchCampaignName, '']]
   UseExistingSimsCampaign: !Not [!Equals [!Ref ExistingSimsCampaignName, '']]
@@ -133,7 +138,7 @@ Resources:
         - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
       Policies:
-        - PolicyName: TableItemsAccess
+        - PolicyName: DDBAccess
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -150,6 +155,8 @@ Resources:
                 Resource:
                   - !GetAtt TableItems.Arn
                   - !Join ['', [!GetAtt TableItems.Arn, '/*']]
+                  - !GetAtt TableUsers.Arn
+                  - !Join ['', [!GetAtt TableUsers.Arn, '/*']]
   APIGateWayRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -181,6 +188,17 @@ Resources:
       BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+  TableUsers:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub '${ProjectName}-Users'
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
 
 # ---------- ELASTICSEARCH ROLE - Domain -----------
   LambdaAdminRole:
@@ -450,6 +468,7 @@ Resources:
         Variables:
           IDENTITY_POOL_ID: !Ref UserEventIdentityPool
           KINESIS_STREAM_NAME: !Ref PostClickEventStream
+          USERS_TABLE_NAME: !Ref TableUsers
       CodeUri: ./functions/APIs/Session/
       Events:
         APIgateway:
@@ -651,7 +670,7 @@ Resources:
         - "arn:aws:iam::aws:policy/IAMFullAccess"
         - "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
       Policies:
-        - PolicyName: TableItemsAccess
+        - PolicyName: DDBAccess
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -668,6 +687,8 @@ Resources:
                 Resource:
                   - !GetAtt TableItems.Arn
                   - !Join ['', [!GetAtt TableItems.Arn, '/*']]
+                  - !GetAtt TableUsers.Arn
+                  - !Join ['', [!GetAtt TableUsers.Arn, '/*']]
 
   # SageMaker notebook
   NotebookConfig:
@@ -780,6 +801,7 @@ Resources:
                   - !Join ['', [!GetAtt PostClickEventStream.Arn, '/*']]
 
   InitItemTable:
+    Condition: UseProductSource
     DependsOn:
       - TableItems
       - UpdateSearchCluster
@@ -807,6 +829,20 @@ Resources:
         - Name: Products
           From: !Ref ProductSource
           To: !If [UseProductSource, !Sub 's3://${StagingS3Bucket}/raw/items', '']
+        - Name: Users
+          From: !Ref UserSource
+          To: !If [UseUserSource, !Sub 's3://${StagingS3Bucket}/raw/users', '']
+
+  InitUserTable:
+    Condition: UseUserSource
+    DependsOn:
+      - TableUsers
+    Type: Custom::UserData
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt FunctionUploadItems.Arn
+      Source: !Ref UserSource
+      TableName: !Ref TableUsers
   
   InitWebAssets:
     DependsOn:
