@@ -35,6 +35,10 @@ Parameters:
     Description: (Optional) Name of an existing Personalize similar items campaign in your account to link to
     Type: String
     Default: ''
+  ExistingTrackingId:
+    Description: (Optional) Tracking ID for an existing Personalize event tracker in your account to link to
+    Type: String
+    Default: ''
 Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
   UseInteractionSource: !Not [!Equals [!Ref InteractionSource, '']]
@@ -748,8 +752,7 @@ Resources:
       Timeout: 69
       Environment:
         Variables:
-          TRACKING_ID: '8b1ce80f-3c86-4924-aaeb-f4a7bb992a53'
-          # TODO: PUT TRACKING ID HERE
+          TRACKING_ID: !Ref ExistingTrackingId
       CodeUri: ./functions/APIs/PostClickEvent/
       Events:
         Clickstream:
