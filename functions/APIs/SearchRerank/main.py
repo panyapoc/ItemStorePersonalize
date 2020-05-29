@@ -48,7 +48,7 @@ def handler(event, context):
             reranked_list = [item["itemId"] for item in rerank["personalizedRanking"]]
     else:
         response["warning"] = (
-            "Personalized search re-rankinng has not yet been enabled: First train a re-ranking model and "
+            "Personalized search re-ranking has not yet been enabled: First train a re-ranking model and "
             "deploy a campaign in Amazon Personalize, then set the CAMPAIGN_ARN environment variable on "
             "your SearchRerank Lambda function to use the model on the website!"
         )
