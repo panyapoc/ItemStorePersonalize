@@ -9,6 +9,7 @@ import gzip
 import io
 import json
 import os
+import re
 from typing import Any, BinaryIO, Dict, Generator, List, Set, Tuple, Union
 import zlib
 
@@ -166,15 +167,42 @@ def data_folder_reader(
 def get_interaction_item_id(event: Dict[str, Any]) -> Union[str, None]:
     return event.get("asin", event.get("item_id", event.get("ASIN", event.get("ITEM_ID"))))
 
-def get_interaction_timestamp(event):
+def get_interaction_timestamp(event: Dict[str, Any]) -> int:
     return int(event.get("unixReviewTime", event.get("TIMESTAMP", event.get("timestamp"))))
 
 def get_interaction_user_id(event: Dict[str, Any]) -> Union[str, None]:
     return event.get("reviewerID", event.get("user_id", event.get("reviewerId", event.get("USER_ID"))))
 
+def get_interaction_value(event) -> Union[float, None]:
+    return float(
+        event.get(
+            "overall",
+            event.get("EVENT_VALUE", event.get("rating", event.get("score", event.get("price", "nan"))))
+        )
+    )
+
 def get_item_id(item: Dict[str, Any]) -> Union[str, None]:
     # Try the same keys as on interaction if not a simple 'id':
     return item.get("id", item.get("ID", get_interaction_item_id(item)))
+
+thumbnail_url_exp = re.compile(r"^(.*images-\w+\.ssl-images-amazon.com\/.*\.)(?:_.*_.)(jpg|png)$")
+def get_item_imgurl(item: Dict[str, Any]) -> Union[str, None]:
+    candidate = item.get("imUrl", item.get("IMGURL", item.get("image", item.get("img_url"))))
+    if candidate is None:
+        return None
+
+    if not isinstance(candidate, str):
+        # Should be a list/tuple/iterable of strs - we'll just take the first one.
+        candidate = candidate[0]
+        assert isinstance(candidate, str), "Unexpected image URL type on item"
+
+    # If it looks like the URL has been thumbnailed, link to the original image instead:
+    match = thumbnail_url_exp.match(candidate)
+    if match:
+        # stitching captured groups 1 and 2 together constructs the non-thumbnail URL:
+        candidate = match[1] + match[2]
+
+    return candidate
 
 def get_item_title(item: Dict[str, Any]) -> str:
     return item.get("title", "Unknown")[:280]
