@@ -85,4 +85,6 @@ sam deploy \
         ProjectName=$STACKNAME \
         WebSource=s3://${SRCS3}/webui.zip
 
+# NOTE: ^ Add more parameter overrides here to set other parameters in your deployed CF stack!
+
 echo -e "${CYAN}Full stack deployed!${NC}"
