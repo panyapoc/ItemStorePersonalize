@@ -10,11 +10,11 @@ Parameters:
   ProductSource:
     Description: S3 source for product data (.csv or .json, optionally compressed with .gz suffix)
     Type: String
-    Default: s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv
+    Default: s3://public-personalize-demo-assets-us-east-1/data/meta_Grocery_and_Gourmet_Food_5.01.json.gz
   UserSource:
     Description: S3 source for user data (.csv or .json, optionally compressed with .gz suffix)
     Type: String
-    Default: s3://public-personalize-demo-assets-us-east-1/data/users_Sports_and_Outdoors.json
+    Default: s3://public-personalize-demo-assets-us-east-1/data/users_Grocery_and_Gourmet_Food.json
   WebSource:
     Description: S3 source for web UI assets
     Type: String
