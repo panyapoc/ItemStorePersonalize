@@ -40,11 +40,11 @@ More details of the pre-processing procedure are available in [Personalize/util/
 
 The following list of datasets have been pre-processed and checked with the solution already. Copy the link targets to save the S3 URI:
 
-**Category** | **Review Data (Loaded to S3)** | **Item Data (Filtered)** | **Users (Manually Curated)**
--|-|-|-
-**Clothing, Shoes and Jewelry** | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/Clothing_Shoes_and_Jewelry_5.json.gz) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/meta_Clothing_Shoes_and_Jewelry_5.01.json.gz)
-**Grocery and Gourmet Food** | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/Grocery_and_Gourmet_Food_5.json.gz) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/meta_Grocery_and_Gourmet_Food_5.01.json.gz) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/users_Grocery_and_Gourmet_Food.json)
-* **Sports and Outdoors** (customized) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/Sports_and_Outdoors_Interactions-CSV.csv) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/users_Sports_and_Outdoors.json)
+| **Category** | **Review Data (Loaded to S3)** | **Item Data (Filtered)** | **Users (Manually Curated)** |
+|-|-|-|-|
+| **Clothing, Shoes and Jewelry** | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/Clothing_Shoes_and_Jewelry_5.json.gz) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/meta_Clothing_Shoes_and_Jewelry_5.01.json.gz) |
+| **Grocery and Gourmet Food** | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/Grocery_and_Gourmet_Food_5.json.gz) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/meta_Grocery_and_Gourmet_Food_5.01.json.gz) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/users_Grocery_and_Gourmet_Food.json) |
+| **Sports and Outdoors** (customized) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/Sports_and_Outdoors_Interactions-CSV.csv) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv) | [us-east-1](s3://public-personalize-demo-assets-us-east-1/data/users_Sports_and_Outdoors.json) |
 
 
 ### Post-CloudFormation Setup
