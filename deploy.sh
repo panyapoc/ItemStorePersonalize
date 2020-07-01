@@ -2,7 +2,6 @@
 BUILDFILE=templatebuild.yaml
 TEMPLATEFILE=template.yaml
 PACKAGEFILE=package.tmp.yaml
-AWSPROFILE=default
 
 SRCS3=$1
 STACKNAME=$2
@@ -57,7 +56,7 @@ echo "Staging web assets..."
 cd webui/build
 rm -f webui.zip
 zip -r webui.zip *
-aws s3 cp webui.zip "s3://${SRCS3}/webui.zip"
+aws s3 cp --profile $AWSPROFILE webui.zip "s3://${SRCS3}/webui.zip"
 cd ../..
 
 echo "Running SAM build..."
@@ -74,7 +73,7 @@ sam package \
     --profile $AWSPROFILE
 
 echo "Copying final CloudFormation template to S3..."
-aws s3 cp $PACKAGEFILE "s3://${SRCS3}/package.yaml"
+aws s3 cp --profile $AWSPROFILE $PACKAGEFILE "s3://${SRCS3}/package.yaml"
 
 echo "Running SAM deploy..."
 sam deploy \
@@ -82,7 +81,10 @@ sam deploy \
     --stack-name $STACKNAME \
     --capabilities CAPABILITY_NAMED_IAM \
     --profile $AWSPROFILE \
-    --parameter-overrides ProjectName=$STACKNAME WebSource=s3://${SRCS3}/webui.zip
-        # --disable-rollback
+    --parameter-overrides \
+        ProjectName=$STACKNAME \
+        WebSource=s3://${SRCS3}/webui.zip
+
+# NOTE: ^ Add more parameter overrides here to set other parameters in your deployed CF stack!
 
 echo -e "${CYAN}Full stack deployed!${NC}"

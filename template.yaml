@@ -161,6 +161,14 @@ Resources:
                   - !Join ['', [!GetAtt TableItems.Arn, '/*']]
                   - !GetAtt TableUsers.Arn
                   - !Join ['', [!GetAtt TableUsers.Arn, '/*']]
+        - PolicyName: RekognitionAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'rekognition:DetectLabels'
+                Resource: '*'
   APIGateWayRole:
     Type: 'AWS::IAM::Role'
     Properties:
