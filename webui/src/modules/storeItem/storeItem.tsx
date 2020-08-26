@@ -1,6 +1,6 @@
 import React from "react";
 import { Html5Entities } from "html-entities";
-import "./storeItem.css";
+import "./storeItem.scss";
 
 const htmlEntities = new Html5Entities();
 
@@ -36,18 +36,14 @@ class ProductRow extends React.Component<ProductRowProps, ProductRowState> {
   render() {
     return (
       <a href={`/product/${this.props.productId}?uid=${this.props.uid}`}>
-        <div className='imgbox'>
-            <img
+        <div className="imgbox">
+          <img
               alt={htmlEntities.decode(this.props.title)}
               src={this.props.imUrl}
-              max-width='33%'
-              max-height='350px'
-              width='auto'
-              height='auto'
-              className='prod-img'
+              className="prod-img"
             ></img>
-          </div><div className='itemTitle'>{htmlEntities.decode(this.props.title)}</div>
-
+        </div>
+        <div className="itemTitle">{htmlEntities.decode(this.props.title)}</div>
       </a>
     );
   }

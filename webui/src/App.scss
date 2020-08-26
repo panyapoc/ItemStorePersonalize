@@ -1,0 +1,58 @@
+@import "./theme";
+@import "~bootstrap";
+
+.App {
+  padding-top: $global-margin;
+}
+
+.navbar {
+  margin-bottom: $global-margin;
+
+  .userstate {
+    font-size: 0.9em;
+    padding: 15px;
+    margin-right: 20px;
+  }
+}
+
+// Stop navbar height getting compressed on small viewports (since we have big header):
+.navbar-brand {
+  height: auto;
+}
+
+.navbar-brand-link {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  .brand-name {
+    display: block;
+    font-weight: bold;
+    color: $col-accent-1;
+  }
+  
+  .brand-tagline {
+    display: block;
+    font-size: 0.8em;
+  }
+  
+  .brand-img {
+    padding-right: 10px;
+  }
+}
+
+.navbar-toggle{
+  margin-top: 20px;
+}
+
+.testimonial-group {
+  >.row {
+    overflow-x: auto;
+    white-space: nowrap;
+
+    >.col-xs-12 {
+      display: inline-block;
+      float: none;
+    }
+  }
+}

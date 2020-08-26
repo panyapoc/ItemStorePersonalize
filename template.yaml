@@ -10,17 +10,43 @@ Parameters:
   ProductSource:
     Description: S3 source for product data (.csv or .json, optionally compressed with .gz suffix)
     Type: String
-    Default: s3://public-personalize-demo-assets-us-east-1/data/items_w_Metadata.csv
-  InteractionSource:
-    Description: (Optional) S3 source for user-product interaction data (.csv or .json, optionally compressed with .gz suffix)
+    Default: s3://public-personalize-demo-assets-us-east-1/data/meta_Grocery_and_Gourmet_Food_5.01.json.gz
+  UserSource:
+    Description: S3 source for user data (.csv or .json, optionally compressed with .gz suffix)
     Type: String
-    Default: ''
+    Default: s3://public-personalize-demo-assets-us-east-1/data/users_Grocery_and_Gourmet_Food.json
   WebSource:
     Description: S3 source for web UI assets
     Type: String
     Default: s3://public-personalize-demo-assets-us-east-1/webui.zip
+  InteractionSource:
+    Description: (Optional) S3 source for user-product interaction data (.csv or .json, optionally compressed with .gz suffix)
+    Type: String
+    Default: ''
+  ExistingBaseCampaignName:
+    Description: (Optional) Name of an existing Personalize recommendation campaign in your account to link to
+    Type: String
+    Default: ''
+  ExistingSearchCampaignName:
+    Description: (Optional) Name of an existing Personalize re-ranking campaign in your account to link to
+    Type: String
+    Default: ''
+  ExistingSimsCampaignName:
+    Description: (Optional) Name of an existing Personalize similar items campaign in your account to link to
+    Type: String
+    Default: ''
+  ExistingTrackingId:
+    Description: (Optional) Tracking ID for an existing Personalize event tracker in your account to link to
+    Type: String
+    Default: ''
 Conditions:
   IADRegion: !Equals [!Ref "AWS::Region", us-east-1]
+  UseInteractionSource: !Not [!Equals [!Ref InteractionSource, '']]
+  UseProductSource: !Not [!Equals [!Ref ProductSource, '']]
+  UseUserSource: !Not [!Equals [!Ref UserSource, '']]
+  UseExistingBaseCampaign: !Not [!Equals [!Ref ExistingBaseCampaignName, '']]
+  UseExistingSearchCampaign: !Not [!Equals [!Ref ExistingSearchCampaignName, '']]
+  UseExistingSimsCampaign: !Not [!Equals [!Ref ExistingSimsCampaignName, '']]
 Globals:
   Function:
     Timeout: 180
@@ -42,6 +68,9 @@ Resources:
     Type: AWS::EC2::VPC
     Properties:
       CidrBlock: '172.31.0.0/16'
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-VPC'
   ItemStoreInternetGateway:
     Type: AWS::EC2::InternetGateway
   ItemStoreAttachGateway:
@@ -54,14 +83,21 @@ Resources:
     Properties:
       CidrBlock: !Select [0, !Cidr [!GetAtt ItemStoreVPC.CidrBlock, 3, 8]]
       VpcId: !Ref ItemStoreVPC
-      # The following examples show valid patterns for using nested intrinsic functions using short form YAML. You can't nest short form functions consecutively, so a pattern like !GetAZs !Ref is invalid.
+      # The following examples show valid patterns for using nested intrinsic functions using short form YAML
+      # ...You can't nest short form functions consecutively, so a pattern like !GetAZs !Ref is invalid.
       AvailabilityZone: !Select [0, Fn::GetAZs: !Ref 'AWS::Region']
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-Subnet1'
   ItemStoreSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       CidrBlock: !Select [1, !Cidr [!GetAtt ItemStoreVPC.CidrBlock, 3, 8]]
       VpcId: !Ref ItemStoreVPC
       AvailabilityZone: !Select [1, Fn::GetAZs: !Ref 'AWS::Region']
+      Tags:
+        - Key: Name
+          Value: !Sub '${ProjectName}-Subnet2'
   ItemStoreVPCRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -106,7 +142,7 @@ Resources:
         - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
         - 'arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess'
       Policies:
-        - PolicyName: TableItemsAccess
+        - PolicyName: DDBAccess
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -123,6 +159,16 @@ Resources:
                 Resource:
                   - !GetAtt TableItems.Arn
                   - !Join ['', [!GetAtt TableItems.Arn, '/*']]
+                  - !GetAtt TableUsers.Arn
+                  - !Join ['', [!GetAtt TableUsers.Arn, '/*']]
+        - PolicyName: RekognitionAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'rekognition:DetectLabels'
+                Resource: '*'
   APIGateWayRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -154,6 +200,17 @@ Resources:
       BillingMode: PAY_PER_REQUEST
       StreamSpecification:
         StreamViewType: NEW_AND_OLD_IMAGES
+  TableUsers:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub '${ProjectName}-Users'
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
 
 # ---------- ELASTICSEARCH ROLE - Domain -----------
   LambdaAdminRole:
@@ -216,6 +273,8 @@ Resources:
                   - !Join ['',[!GetAtt TableItems.Arn,'/stream/*']]
   ElasticsearchDomain:
     Type: 'AWS::Elasticsearch::Domain'
+    DependsOn:
+      - ItemStoreSubnet1
     Properties:
       DomainName: !Sub '${ProjectName}-domain'
       ElasticsearchVersion: '7.1'
@@ -226,7 +285,7 @@ Resources:
         InstanceType: t2.small.elasticsearch
       VPCOptions:
         SubnetIds:
-          - Ref: ItemStoreSubnet1
+          - !Ref ItemStoreSubnet1
       EBSOptions:
         EBSEnabled: true
         Iops: 0
@@ -351,15 +410,6 @@ Resources:
       Role: !GetAtt LambdaAdminRole.Arn
       Timeout: 900
       MemorySize: 256
-      Environment:
-        Variables:
-          INTERACTIONS_SOURCE: !Ref InteractionSource
-          INTERACTIONS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/interactions'
-          PRODUCTS_SOURCE: !Ref ProductSource
-          PRODUCTS_RAW_UPLOAD: !Sub 's3://${StagingS3Bucket}/raw/items'
-          PRODUCTS_TABLE_NAME: !Ref TableItems
-          WEB_ASSETS_SOURCE: !Ref WebSource
-          WEB_DEPLOYMENT_LOCATION: !Sub 's3://${WebBucket}/web'
       CodeUri: ./functions/setup/
   FunctionGetRecommendations:
     Type: 'AWS::Serverless::Function'
@@ -370,8 +420,12 @@ Resources:
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
-          ddb_tablename: !Ref TableItems
-          Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-camp'
+          DDB_TABLE_NAME: !Ref TableItems
+          CAMPAIGN_ARN:
+            Fn::If:
+              - UseExistingBaseCampaign
+              - !Sub 'arn:aws:personalize:${AWS::Region}:${AWS::AccountId}:campaign/${ExistingBaseCampaignName}'
+              - ''
       Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
@@ -396,8 +450,12 @@ Resources:
       Role: !GetAtt LambdaAdminRole.Arn
       Environment:
         Variables:
-          ddb_tablename: !Ref TableItems
-          Campaign_ARN: 'arn:aws:personalize:us-east-1:387269085412:campaign/SIM-campaign'
+          DDB_TABLE_NAME: !Ref TableItems
+          CAMPAIGN_ARN:
+            Fn::If:
+              - UseExistingSimsCampaign
+              - !Sub 'arn:aws:personalize:${AWS::Region}:${AWS::AccountId}:campaign/${ExistingSimsCampaignName}'
+              - ''
       Handler: main.handler
       MemorySize: 256
       Runtime: python3.8
@@ -422,6 +480,7 @@ Resources:
         Variables:
           IDENTITY_POOL_ID: !Ref UserEventIdentityPool
           KINESIS_STREAM_NAME: !Ref PostClickEventStream
+          USERS_TABLE_NAME: !Ref TableUsers
       CodeUri: ./functions/APIs/Session/
       Events:
         APIgateway:
@@ -467,10 +526,14 @@ Resources:
       CodeUri: ./functions/APIs/SearchRerank/
       Environment:
         Variables:
-          ESENDPOINT: !GetAtt ElasticsearchDomain.DomainEndpoint
-          DDB_TABLE: !Ref TableItems
-          SEARCH_ARN: !GetAtt FunctionSearch.Arn
-          RANKING_ARN: arn:aws:personalize:us-east-1:387269085412:campaign/personalize-demo-soln-ranking
+          DDB_TABLE_NAME: !Ref TableItems
+          MAX_PROMOTED_RESULTS: 45
+          SEARCH_LAMBDA_ARN: !GetAtt FunctionSearch.Arn
+          CAMPAIGN_ARN:
+            Fn::If:
+              - UseExistingSearchCampaign
+              - !Sub 'arn:aws:personalize:${AWS::Region}:${AWS::AccountId}:campaign/${ExistingSearchCampaignName}'
+              - ''
       Events:
         APIgateway:
           Type: Api
@@ -619,7 +682,7 @@ Resources:
         - "arn:aws:iam::aws:policy/IAMFullAccess"
         - "arn:aws:iam::aws:policy/AWSLambdaFullAccess"
       Policies:
-        - PolicyName: TableItemsAccess
+        - PolicyName: DDBAccess
           PolicyDocument:
             Version: 2012-10-17
             Statement:
@@ -636,6 +699,8 @@ Resources:
                 Resource:
                   - !GetAtt TableItems.Arn
                   - !Join ['', [!GetAtt TableItems.Arn, '/*']]
+                  - !GetAtt TableUsers.Arn
+                  - !Join ['', [!GetAtt TableUsers.Arn, '/*']]
 
   # SageMaker notebook
   NotebookConfig:
@@ -695,8 +760,7 @@ Resources:
       Timeout: 69
       Environment:
         Variables:
-          TRACKING_ID: '8b1ce80f-3c86-4924-aaeb-f4a7bb992a53'
-          # TODO: PUT TRACKING ID HERE
+          TRACKING_ID: !Ref ExistingTrackingId
       CodeUri: ./functions/APIs/PostClickEvent/
       Events:
         Clickstream:
@@ -746,16 +810,60 @@ Resources:
                 Resource:
                   - !GetAtt PostClickEventStream.Arn
                   - !Join ['', [!GetAtt PostClickEventStream.Arn, '/*']]
+
   InitItemTable:
+    Condition: UseProductSource
     DependsOn:
       - TableItems
       - UpdateSearchCluster
       - ElasticsearchDomain
-    Type: AWS::CloudFormation::CustomResource
+    Type: Custom::ProductData
     Version: "1.0"
     Properties:
       ServiceToken: !GetAtt FunctionUploadItems.Arn
-      FunctionName: !Ref FunctionUploadItems
+      Shards: 3
+      Source: !Ref ProductSource
+      TableName: !Ref TableItems
+
+  InitStagingBucket:
+    DependsOn:
+      - StagingS3Bucket
+    Type: Custom::S3Copy
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt FunctionUploadItems.Arn
+      Items:
+        # Any items with empty To will be skipped:
+        - Name: Interactions
+          From: !Ref InteractionSource
+          To: !If [UseInteractionSource, !Sub 's3://${StagingS3Bucket}/raw/interactions', '']
+        - Name: Products
+          From: !Ref ProductSource
+          To: !If [UseProductSource, !Sub 's3://${StagingS3Bucket}/raw/items', '']
+        - Name: Users
+          From: !Ref UserSource
+          To: !If [UseUserSource, !Sub 's3://${StagingS3Bucket}/raw/users', '']
+
+  InitUserTable:
+    Condition: UseUserSource
+    DependsOn:
+      - TableUsers
+    Type: Custom::UserData
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt FunctionUploadItems.Arn
+      Source: !Ref UserSource
+      TableName: !Ref TableUsers
+  
+  InitWebAssets:
+    DependsOn:
+      - WebBucket
+    Type: Custom::WebAssets
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt FunctionUploadItems.Arn
+      Source: !Ref WebSource
+      Target: !Sub 's3://${WebBucket}/web'
 
 Outputs:
   APIEndpoint:

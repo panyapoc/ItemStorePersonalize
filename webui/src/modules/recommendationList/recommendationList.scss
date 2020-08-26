@@ -1,0 +1,18 @@
+@import "../../theme";
+
+.similar {
+  max-width: 100%;
+  overflow-x: scroll;
+  overflow: -moz-scrollbars-horizontal;
+}
+
+.similar span {
+  vertical-align: top;
+}
+
+.itemsForUser {
+  max-width: 100%;
+  overflow-x: scroll;
+  overflow: -moz-scrollbars-horizontal;
+  padding-bottom: 20px;
+}

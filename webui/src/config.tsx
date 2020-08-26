@@ -4,6 +4,22 @@
 // the same as our CloudFront forwarding path:
 const Apitree = "/Prod/";
 
+interface User {
+  firstName: string,
+  id: string,
+  lastName: string
+}
+
+interface DynamicConfig {
+  AnonymousPoolId: string,
+  StreamName: string,
+  UserList: Array<{
+    FirstName: string,
+    Id: string,
+    LastName: string,
+  }>
+}
+
 // Define static config properties:
 // (Setting dynamically-initialized props to null with override type annotation for TS)
 const staticConfig = {
@@ -26,14 +42,10 @@ const staticConfig = {
     GetDescriptionForProduct: `${Apitree}description`
   },
   user: {
-    id: "AIXZKN4ACSKI"
+    id: null as string|null,
+    list: [] as Array<User>,
   }
 };
-
-interface DynamicConfig {
-  AnonymousPoolId: string,
-  StreamName: string,
-}
 
 async function initSession() {
   const dynamicConfigResponse = await fetch(staticConfig.api.SessionUrl)
@@ -46,6 +58,12 @@ async function initSession() {
   // Doesn't matter that we'll just override the staticConfig, since session is one-shot:
   staticConfig.kinesis.StreamName = dynamicConfig.StreamName;
   staticConfig.cognito.AnonymousPoolId = dynamicConfig.AnonymousPoolId;
+
+  staticConfig.user.list = dynamicConfig.UserList.map(u => ({
+    firstName: u.FirstName,
+    id: u.Id,
+    lastName: u.LastName,
+  }));
 
   return staticConfig;
 }

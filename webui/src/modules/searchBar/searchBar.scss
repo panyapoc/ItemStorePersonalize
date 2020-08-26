@@ -1,0 +1,19 @@
+@import "../../theme";
+
+.searchform {
+  // Ensnure the div wraps around its content:
+  overflow: hidden;
+
+  .btn-orange {
+    background-color: $col-accent-1;
+    border-color: darken($col-accent-1, 20%);
+  }
+}
+
+.mainsearch {
+  border-radius: 4px; // Same as Bootstrap navbar
+  background-color: $col-dark-primary;
+  padding-top: $global-margin;
+  padding-bottom: $global-margin;
+  margin-bottom: $global-margin;
+}

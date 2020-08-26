@@ -1,0 +1,43 @@
+@import "../../theme";
+
+.product {
+  height: 300px;
+  margin-bottom: $global-margin;
+  margin-top: $global-margin;
+  overflow: hidden;
+  position: relative;
+
+  >a {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+  }
+
+  .imgbox {
+    // Allow both grow and shrink:
+    flex: 1 1 auto;
+    // Prevent flex item getting default minimum size from child:
+    min-height: 0;
+    // Not sure if this is actually doing anything, intent is to allow small images to grow to the box:
+    object-fit: contain;
+  }
+
+  .prod-img {
+    display: block;
+    margin: auto; // center horizontally
+    // Note we're assuming here that the image is always big... There's probably something we should be doing
+    // with object-fit as well, to grow small images?
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .itemTitle {
+    flex: 0 0 auto;
+    max-height: 3em;
+    overflow: hidden;
+    text-align: center;
+    text-overflow: ellipsis;
+  }
+}
