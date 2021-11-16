@@ -9,6 +9,6 @@
   "keywords": [],
   "author": "",
   "dependencies": {
-    "aws-sdk": "^2.647.0"
+    "aws-sdk": "^2.814.0"
   }
 }
