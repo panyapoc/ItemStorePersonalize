@@ -10,7 +10,7 @@
   },
   "author": "",
   "dependencies": {
-    "aws-sdk": "^2.648.0",
+    "aws-sdk": "^2.814.0",
     "cfn-response": "^1.0.1",
     "csv-parse": "^4.8.8",
     "jszip": "^3.2.2",
