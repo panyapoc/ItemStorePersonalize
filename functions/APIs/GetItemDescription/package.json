@@ -9,7 +9,7 @@
   "keywords": [],
   "author": "",
   "dependencies": {
-    "aws-sdk": "^2.647.0",
+    "aws-sdk": "^2.814.0",
     "chrome-aws-lambda": "^2.0.2",
     "puppeteer-core": "^2.1.1"
   }
